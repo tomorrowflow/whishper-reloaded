@@ -16,7 +16,7 @@
 
 	let errorMessage = '';
 	let disableSubmit = true;
-	let modelSize = 'small';
+	let modelSize = 'large-v3';
 	let language = 'auto';
 	let sourceUrl = '';
 	let fileInput;

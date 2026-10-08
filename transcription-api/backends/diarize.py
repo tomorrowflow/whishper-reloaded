@@ -143,6 +143,7 @@ def _snap_to_sentences(words: list, labels: list) -> None:
     it ("Die | EGL-Meeting hat er abgesagt?").
     """
     ends = [w["word"].strip().endswith((".", "?", "!", "…")) for w in words]
+    commas = [w["word"].strip().endswith((",", ";", ":")) for w in words]
 
     def sentence_end_before(j: int) -> bool:
         # Whether a new speaker could start at word j: at either edge of the
@@ -162,6 +163,16 @@ def _snap_to_sentences(words: list, labels: list) -> None:
                         break
                 if target is not None:
                     break
+            # No sentence end nearby: a comma right next to the change is the next
+            # best hint. VAD makes Whisper join sentences with commas instead of
+            # full stops ("...aber ja, definitiv, ich | gucke mal..."), but a comma
+            # further away often sits inside one speaker's sentence, so only one
+            # word of reach.
+            if target is None and not commas[i - 1]:
+                for j in (i + 1, i - 1):
+                    if 1 <= j < len(words) and commas[j - 1]:
+                        target = j
+                        break
             if target is not None and target > i:
                 labels[i:target] = [labels[i - 1]] * (target - i)
             elif target is not None:
