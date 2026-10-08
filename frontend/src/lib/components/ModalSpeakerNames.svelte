@@ -2,10 +2,10 @@
 	import { tick } from 'svelte';
 	import toast from 'svelte-french-toast';
 	import { _ } from 'svelte-i18n';
-	import { saveSpeakerNames, speakerName, speakerPalette, formatClockTime } from '$lib/utils';
+	import { saveSpeakerNames, mergeSpeakers, speakerName, speakerPalette, formatClockTime } from '$lib/utils';
 	import Modal from './ui/Modal.svelte';
 	import Button from './ui/Button.svelte';
-	import { Pause, Play, Users, X } from 'lucide-svelte';
+	import { Combine, Pause, Play, Users, X } from 'lucide-svelte';
 
 	export let open = false;
 	export let tr; // full transcription, with result.segments and speakerNames
@@ -20,6 +20,39 @@
 	let drafts = {};
 	let saving = false;
 	let listening = null; // label whose voice sample was started last
+
+	// Joining is permanent (segments are relabelled), so picking a target only asks;
+	// the join happens once the row's confirmation is accepted.
+	let join = null; // { from, into } awaiting confirmation
+	let joining = false;
+
+	function askJoin(from, into) {
+		join = into ? { from, into } : null;
+	}
+
+	async function confirmJoin() {
+		if (!join || joining) return;
+		joining = true;
+		const { from, into } = join;
+		try {
+			const updated = await mergeSpeakers(tr.id, [from], into);
+			// Keep unsaved names typed for the other speakers; the joined one is gone.
+			const { [from]: _gone, ...rest } = drafts;
+			drafts = rest;
+			if (listening === from) listening = null;
+			onSaved?.(updated);
+			toast.success($_('modals.speakers.join.toasts.success', { values: { from: displayName(from), into: displayName(into) } }));
+		} catch (error) {
+			console.error('Error joining speakers:', error);
+			toast.error($_('modals.speakers.join.toasts.error'));
+		} finally {
+			joining = false;
+			join = null;
+		}
+	}
+
+	// What the user currently calls a speaker: a typed name, else the default.
+	const displayName = (label) => speakerName(label, draftNames);
 
 	// The sample button mirrors the player: the sample being heard shows pause, and
 	// the same button resumes it. Any other sample starts from its own sentence.
@@ -89,7 +122,6 @@
 	);
 	$: mergedCount = new Set(speakers.map((s) => speakerName(s.label, draftNames))).size;
 	$: changed = speakers.some((s) => (drafts[s.label] ?? '').trim() !== (tr?.speakerNames?.[s.label] ?? ''));
-
 	async function save() {
 		if (saving || !changed) return;
 		saving = true;
@@ -150,7 +182,45 @@
 								values: { duration: formatDuration(speaker.seconds), count: speaker.segments }
 							})}
 						</span>
+						{#if speakers.length > 1}
+							<label class="relative shrink-0" title={$_('modals.speakers.join.label')}>
+								<span class="sr-only">{$_('modals.speakers.join.label')}</span>
+								<Combine size={12} class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+								<select
+									value={join?.from === speaker.label ? join.into : ''}
+									disabled={joining}
+									on:change={(e) => askJoin(speaker.label, e.currentTarget.value)}
+									class="appearance-none rounded-lg border border-border bg-muted py-1.5 pl-6 pr-2 text-[0.72rem] text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/35"
+								>
+									<option value="">{$_('modals.speakers.join.placeholder')}</option>
+									{#each speakers.filter((other) => other.label !== speaker.label) as other (other.label)}
+										<option value={other.label}>{displayName(other.label)}</option>
+									{/each}
+								</select>
+							</label>
+						{/if}
 					</div>
+					{#if join?.from === speaker.label}
+						<div
+							class="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2"
+							role="alert"
+						>
+							<p class="text-[0.78rem] text-foreground">
+								{$_('modals.speakers.join.confirm', {
+									values: { from: displayName(join.from), into: displayName(join.into), count: speaker.segments }
+								})}
+							</p>
+							<div class="flex shrink-0 items-center gap-2">
+								<Button variant="secondary" size="sm" on:click={() => (join = null)} disabled={joining}>
+									{$_('common.cancel')}
+								</Button>
+								<Button size="sm" on:click={confirmJoin} disabled={joining}>
+									<Combine size={13} />
+									{$_('modals.speakers.join.action')}
+								</Button>
+							</div>
+						</div>
+					{/if}
 					{#if speaker.sample?.text}
 						<div class="mt-2 flex items-start gap-2 pl-[6.6rem] max-sm:pl-0">
 							{#if onListen}

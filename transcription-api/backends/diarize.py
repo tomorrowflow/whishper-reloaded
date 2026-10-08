@@ -1,3 +1,4 @@
+import uuid
 import numpy as np
 from typing import Optional
 
@@ -67,11 +68,11 @@ def assign_speakers(
             for turn, _, speaker in annotation.itertracks(yield_label=True)
         ]
 
+        labelled = []
         for seg in segments:
-            speaker = _dominant_speaker(float(seg["start"]), float(seg["end"]), turns)
-            if speaker is not None:
-                seg["speaker"] = speaker
-        _renumber_speakers(segments)
+            labelled.extend(_split_by_speaker(seg, turns))
+        _renumber_speakers(labelled)
+        segments = labelled
 
     except Exception as exc:
         print(f"Diarization failed: {exc}")
@@ -96,6 +97,105 @@ def _dominant_speaker(seg_start: float, seg_end: float, turns: list) -> Optional
         key=lambda t: max(t[0] - seg_end, seg_start - t[1], 0.0),
     )
     return nearest[2]
+
+
+# A run of words shorter than this between two runs of the same speaker is treated
+# as boundary jitter and absorbed rather than split off (seconds).
+MIN_INTERJECTION = 0.3
+
+
+# How many words a speaker change may be moved to land on a sentence end.
+SENTENCE_SNAP_REACH = 2
+
+
+def _snap_to_sentences(words: list, labels: list) -> None:
+    """Move speaker changes onto nearby sentence ends, in place.
+
+    People take turns at sentence ends, while diarization boundaries and word
+    timings are only accurate to a fraction of a second. A change that falls a word
+    or two away from a sentence end ("...Anreise. Am | Sonntag hat er...") is moved
+    onto it; one with no sentence end within reach is left alone.
+    """
+    ends = [w["word"].strip().endswith((".", "?", "!", "…")) for w in words]
+    i = 1
+    while i < len(labels):
+        if labels[i] != labels[i - 1] and not ends[i - 1]:
+            # Candidate positions j where a new speaker could start: right after a
+            # sentence end, nearest first, later before earlier on a tie.
+            target = None
+            for d in range(1, SENTENCE_SNAP_REACH + 1):
+                for j in (i + d, i - d):
+                    if 1 <= j <= len(words) and ends[j - 1]:
+                        target = j
+                        break
+                if target is not None:
+                    break
+            if target is not None and target > i:
+                labels[i:target] = [labels[i - 1]] * (target - i)
+            elif target is not None:
+                labels[target:i] = [labels[i]] * (i - target)
+        i += 1
+
+
+def _split_by_speaker(seg: dict, turns: list) -> list:
+    """Label a segment by speaker, splitting it where the speaker changes.
+
+    Whisper cuts segments by sentence, not by speaker, so one segment can hold two
+    voices ("Okay. - Also hier steht abgesagt..."). Every word gets the speaker who
+    overlaps it most, and consecutive words of one speaker form a segment.
+    """
+    seg_speaker = _dominant_speaker(float(seg["start"]), float(seg["end"]), turns)
+    words = seg.get("words") or []
+    if not words:
+        if seg_speaker is not None:
+            seg["speaker"] = seg_speaker
+        return [seg]
+
+    labels = [
+        _dominant_speaker(float(w["start"]), float(w["end"]), turns) or seg_speaker
+        for w in words
+    ]
+    _snap_to_sentences(words, labels)
+
+    runs: list = []  # [label, [words]]
+    for word, label in zip(words, labels):
+        if runs and runs[-1][0] == label:
+            runs[-1][1].append(word)
+        else:
+            runs.append([label, [word]])
+
+    # A short run sandwiched inside one speaker's sentence is almost always the
+    # turn boundaries and word timings disagreeing by a fraction of a second.
+    i = 1
+    while i < len(runs) - 1:
+        label, run_words = runs[i]
+        duration = float(run_words[-1]["end"]) - float(run_words[0]["start"])
+        if runs[i - 1][0] == runs[i + 1][0] and duration < MIN_INTERJECTION:
+            runs[i - 1][1].extend(run_words + runs[i + 1][1])
+            del runs[i : i + 2]
+        else:
+            i += 1
+
+    if len(runs) == 1:
+        if runs[0][0] is not None:
+            seg["speaker"] = runs[0][0]
+        return [seg]
+
+    parts = []
+    for k, (label, run_words) in enumerate(runs):
+        part = dict(seg)
+        part["id"] = seg.get("id") if k == 0 else uuid.uuid4().hex
+        part["words"] = run_words
+        part["start"] = seg["start"] if k == 0 else run_words[0]["start"]
+        part["end"] = seg["end"] if k == len(runs) - 1 else run_words[-1]["end"]
+        part["text"] = "".join(w["word"] for w in run_words)
+        part["score"] = round(sum(w.get("score", 0) for w in run_words) / len(run_words), 2)
+        if label is not None:
+            part["speaker"] = label
+        else:
+            part.pop("speaker", None)
+        parts.append(part)
+    return parts
 
 
 def _renumber_speakers(segments: list) -> None:

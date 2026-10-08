@@ -1,7 +1,7 @@
 <script>
 	import { speakerPalette, formatClockTime } from '$lib/utils';
 	import { _ } from 'svelte-i18n';
-	import { Pencil } from 'lucide-svelte';
+	import { ArrowLeftRight, Pencil } from 'lucide-svelte';
 
 	// One turn of the conversation: everything a speaker said before the next
 	// person took over. Read-only by design — no timing inputs, no per-segment
@@ -13,6 +13,7 @@
 	export let playing = false; // the turn the media is currently inside
 	export let onSeek = null;
 	export let onRename = null; // (label) => void, opens the speaker names dialog
+	export let onCorrect = null; // (turn) => void, opens the speaker correction dialog
 
 	$: palette = speakerPalette(turn.label);
 
@@ -100,6 +101,17 @@
 				on:click={() => onRename(turn.label)}
 			>
 				<Pencil size={11} />
+			</button>
+		{/if}
+		{#if turn.speaker && onCorrect}
+			<button
+				type="button"
+				class="self-center rounded p-0.5 text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus:opacity-100 group-hover:opacity-100"
+				title={$_('reader.correctSpeaker')}
+				aria-label={$_('reader.correctSpeaker')}
+				on:click={() => onCorrect(turn)}
+			>
+				<ArrowLeftRight size={11} />
 			</button>
 		{/if}
 	</div>

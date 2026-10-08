@@ -2,7 +2,9 @@ package api
 
 import (
 	"fmt"
+	"math"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -513,6 +515,140 @@ func (s *Server) handleUpdateSpeakerNames(c *fiber.Ctx) error {
 		names[label] = name
 	}
 
+	ut, err := s.Db.UpdateSpeakerNames(id, names)
+	if err != nil || ut == nil {
+		log.Error().Err(err).Msgf("Error updating speaker names of transcription %v", id)
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal server error")
+	}
+
+	s.BroadcastTranscription(ut)
+	return c.JSON(ut)
+}
+
+// speakerLabelPattern matches the labels diarization produces ("SPEAKER_00").
+var speakerLabelPattern = regexp.MustCompile(`^SPEAKER_\d{2,3}$`)
+
+// segmentSpeakerChange reassigns one segment. Start must match the segment's start
+// time, so a correction made on a stale copy cannot land on a different segment.
+type segmentSpeakerChange struct {
+	Index   int     `json:"index"`
+	Start   float64 `json:"start"`
+	Speaker string  `json:"speaker"`
+}
+
+// handleUpdateSegmentSpeakers corrects the speaker of individual segments, for when
+// diarization attributed a sentence to the wrong person. Translations are copied
+// segment by segment from the original, so the same segment in every translation
+// is corrected along with it.
+func (s *Server) handleUpdateSegmentSpeakers(c *fiber.Ctx) error {
+	id := c.Params("id")
+	t := s.Db.GetTranscription(id)
+	if t == nil {
+		log.Warn().Msgf("Transcription with id %v not found", id)
+		return fiber.NewError(fiber.StatusNotFound, "Not found")
+	}
+
+	var changes []segmentSpeakerChange
+	if err := json.Unmarshal(c.Body(), &changes); err != nil || len(changes) == 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "Body must be a non-empty JSON array of {index, start, speaker}")
+	}
+
+	const startTolerance = 0.001 // seconds
+	paths := map[string]string{}
+	for _, change := range changes {
+		if !speakerLabelPattern.MatchString(change.Speaker) {
+			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid speaker label %q", change.Speaker))
+		}
+		if change.Index < 0 || change.Index >= len(t.Result.Segments) ||
+			math.Abs(t.Result.Segments[change.Index].Start-change.Start) > startTolerance {
+			return fiber.NewError(fiber.StatusConflict, fmt.Sprintf("Segment %d has changed, reload and try again", change.Index))
+		}
+		paths[fmt.Sprintf("result.segments.%d.speaker", change.Index)] = change.Speaker
+
+		for ti, translation := range t.Translations {
+			segments := translation.Result.Segments
+			if change.Index < len(segments) && math.Abs(segments[change.Index].Start-change.Start) <= startTolerance {
+				paths[fmt.Sprintf("translations.%d.result.segments.%d.speaker", ti, change.Index)] = change.Speaker
+			}
+		}
+	}
+
+	ut, err := s.Db.UpdateSegmentSpeakers(id, paths)
+	if err != nil || ut == nil {
+		log.Error().Err(err).Msgf("Error updating segment speakers of transcription %v", id)
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal server error")
+	}
+
+	s.BroadcastTranscription(ut)
+	return c.JSON(ut)
+}
+
+// mergeSpeakersRequest joins the speakers in From into Into.
+type mergeSpeakersRequest struct {
+	From []string `json:"from"`
+	Into string   `json:"into"`
+}
+
+// handleMergeSpeakers joins speakers that diarization split apart (the same person
+// recognised as two voices, e.g. after a microphone change). Every segment of the
+// merged speakers, in the original and in all translations, is relabelled to the
+// target speaker, and the merged speakers' names are dropped.
+func (s *Server) handleMergeSpeakers(c *fiber.Ctx) error {
+	id := c.Params("id")
+	t := s.Db.GetTranscription(id)
+	if t == nil {
+		log.Warn().Msgf("Transcription with id %v not found", id)
+		return fiber.NewError(fiber.StatusNotFound, "Not found")
+	}
+
+	var req mergeSpeakersRequest
+	if err := json.Unmarshal(c.Body(), &req); err != nil || len(req.From) == 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "Body must be {from: [labels], into: label}")
+	}
+
+	labels := map[string]bool{}
+	for _, segment := range t.Result.Segments {
+		labels[segment.Speaker] = true
+	}
+	merged := map[string]bool{}
+	for _, label := range append(req.From, req.Into) {
+		if label == "" || !labels[label] {
+			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Unknown speaker label %q", label))
+		}
+	}
+	for _, label := range req.From {
+		if label == req.Into {
+			return fiber.NewError(fiber.StatusBadRequest, "Cannot join a speaker into itself")
+		}
+		merged[label] = true
+	}
+
+	paths := map[string]string{}
+	for i, segment := range t.Result.Segments {
+		if merged[segment.Speaker] {
+			paths[fmt.Sprintf("result.segments.%d.speaker", i)] = req.Into
+		}
+	}
+	for ti, translation := range t.Translations {
+		for i, segment := range translation.Result.Segments {
+			if merged[segment.Speaker] {
+				paths[fmt.Sprintf("translations.%d.result.segments.%d.speaker", ti, i)] = req.Into
+			}
+		}
+	}
+
+	if _, err := s.Db.UpdateSegmentSpeakers(id, paths); err != nil {
+		log.Error().Err(err).Msgf("Error merging speakers of transcription %v", id)
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal server error")
+	}
+
+	// The merged labels no longer occur, so their names would only linger.
+	names := map[string]string{}
+	for label, name := range t.SpeakerNames {
+		if !merged[label] {
+			names[label] = name
+		}
+	}
 	ut, err := s.Db.UpdateSpeakerNames(id, names)
 	if err != nil || ut == nil {
 		log.Error().Err(err).Msgf("Error updating speaker names of transcription %v", id)

@@ -1,3 +1,16 @@
+<script context="module">
+	import { derived } from 'svelte/store';
+	import { currentTranscription as transcriptionStore } from '$lib/stores';
+	import { speakerLabels, nextSpeakerLabel } from '$lib/utils';
+
+	// The speakers a segment can be assigned to, computed once per change for all rows
+	// rather than by each of the (possibly thousands of) segments.
+	const speakerChoices = derived(transcriptionStore, ($t) => {
+		const segments = $t?.result?.segments ?? [];
+		return { labels: speakerLabels(segments), next: nextSpeakerLabel(segments) };
+	});
+</script>
+
 <script>
 	import { editorSettings } from '$lib/stores';
 	import { speakerName, speakerPalette } from '$lib/utils';
@@ -148,6 +161,15 @@
 	// Abbreviate the same name the speaker-aware exports use ("Speaker 1" -> "S1"),
 	// so the badge numbering matches a downloaded transcript. Custom names are kept.
 	$: speakerBadge = (speakerName(segment.speaker, speakerNames) ?? '').replace(/^Speaker /, 'S');
+	const shortName = (label) => (speakerName(label, speakerNames) ?? '').replace(/^Speaker /, 'S');
+
+	// Diarization can attribute a sentence to the wrong person; the badge doubles as
+	// a picker to correct it. Saved together with the other edits.
+	function changeSpeaker(label) {
+		segment.speaker = label;
+		$currentTranscription = { ...$currentTranscription };
+		handleHistory();
+	}
 </script>
 
 <div
@@ -165,14 +187,23 @@
 			{index}
 		</span>
 
-		{#if speakerBadge && palette}
-		<!-- Speaker badge -->
-		<span
-			class="mt-2 shrink-0 max-w-[7rem] truncate px-1.5 py-0.5 rounded border text-[0.65rem] font-mono font-semibold {palette.badge}"
-			title={speakerBadge}
+		{#if $speakerChoices.labels.length}
+		<!-- Speaker badge, doubling as the picker to correct the speaker -->
+		<select
+			value={segment.speaker ?? ''}
+			on:change={(e) => changeSpeaker(e.currentTarget.value)}
+			title={$_('editor.speaker', { values: { name: speakerBadge || '–' } })}
+			aria-label={$_('editor.speaker', { values: { name: speakerBadge || '–' } })}
+			class="mt-2 shrink-0 max-w-[7rem] cursor-pointer appearance-none truncate px-1.5 py-0.5 rounded border text-[0.65rem] font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-primary/40 {palette
+				? palette.badge
+				: 'border-border bg-muted text-muted-foreground'}"
 		>
-			{speakerBadge}
-		</span>
+			{#if !segment.speaker}<option value="">–</option>{/if}
+			{#each $speakerChoices.labels as label (label)}
+				<option value={label}>{shortName(label)}</option>
+			{/each}
+			<option value={$speakerChoices.next}>{$_('editor.newSpeaker', { values: { name: shortName($speakerChoices.next) } })}</option>
+		</select>
 		{/if}
 
 		<!-- Timestamps -->

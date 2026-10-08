@@ -171,6 +171,26 @@ func (s *Server) RegisterRoutes() {
 		return err
 	})
 
+	// Register HTTP route for correcting the speaker of individual segments.
+	s.Router.Put("/api/transcriptions/:id/segment-speakers", func(c *fiber.Ctx) error {
+		log.Debug().Msgf("PUT /api/transcriptions/%v/segment-speakers", c.Params("id"))
+		err := s.handleUpdateSegmentSpeakers(c)
+		if err != nil {
+			log.Error().Err(err).Msg("Error handling PUT /api/transcriptions/:id/segment-speakers")
+		}
+		return err
+	})
+
+	// Register HTTP route for joining speakers that diarization split apart.
+	s.Router.Post("/api/transcriptions/:id/merge-speakers", func(c *fiber.Ctx) error {
+		log.Debug().Msgf("POST /api/transcriptions/%v/merge-speakers", c.Params("id"))
+		err := s.handleMergeSpeakers(c)
+		if err != nil {
+			log.Error().Err(err).Msg("Error handling POST /api/transcriptions/:id/merge-speakers")
+		}
+		return err
+	})
+
 	// Register HTTP route for receiving the form data and creating new transcription job.
 	s.Router.Delete("/api/transcriptions/:id", func(c *fiber.Ctx) error {
 		log.Debug().Msgf("DELETE /api/transcriptions/%v", c.Params("id"))

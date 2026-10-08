@@ -191,7 +191,7 @@
 		},
 		"speakers": {
 			"title": "Parlanti",
-			"hint": "Dai un nome a ogni voce: sostituisce \"Speaker N\" in tutta la trascrizione e nei download. Se la diarizzazione ha diviso una persona in due voci (ad esempio dopo un cambio di microfono), assegna a entrambe lo stesso nome per unirle.",
+			"hint": "Dai un nome a ogni voce: sostituisce \"Speaker N\" in tutta la trascrizione e nei download. Se la diarizzazione ha diviso una persona in due voci (ad esempio dopo un cambio di microfono), uniscile con \"Unisci a…\".",
 			"stats": "{duration} · {count, plural, one {# segmento} other {# segmenti}}",
 			"listen": "Ascolta questa voce",
 			"merged": "{from} voci → {to} parlanti",
@@ -200,7 +200,30 @@
 				"success": "Nomi dei parlanti salvati.",
 				"error": "Impossibile salvare i nomi. Riprova."
 			},
-			"pause": "Metti in pausa"
+			"pause": "Metti in pausa",
+			"join": {
+				"label": "Unisci questo parlante a un altro",
+				"placeholder": "Unisci a…",
+				"confirm": "Unire {from} a {into}? {count, plural, one {Il # segmento} other {Tutti i # segmenti}} di {from} verranno attribuiti a {into}. L'operazione non può essere annullata.",
+				"action": "Unisci",
+				"toasts": {
+					"success": "{from} unito a {into}.",
+					"error": "Impossibile unire i parlanti. Riprova."
+				}
+			}
+		},
+		"segmentSpeakers": {
+			"title": "Correggi il parlante",
+			"hint": "La diarizzazione ha attribuito queste frasi allo stesso parlante. Scegli il parlante giusto per ogni frase; il paragrafo viene diviso dove cambia il parlante.",
+			"listen": "Ascolta questa frase",
+			"speakerFor": "Parlante della frase a {time}",
+			"newSpeaker": "Nuovo parlante ({name})",
+			"save": "Salva",
+			"toasts": {
+				"success": "Parlanti corretti.",
+				"error": "Impossibile correggere i parlanti. Riprova.",
+				"conflict": "La trascrizione è cambiata nel frattempo. Ricarica la pagina e riprova."
+			}
 		}
 	},
 	"editor": {
@@ -248,7 +271,9 @@
 			"saved": "Salvato!",
 			"autosaveDisabled": "Il salvataggio automatico è disattivato.",
 			"autosaveEnabled": "Salvataggio automatico attivato."
-		}
+		},
+		"speaker": "Parlante: {name} — clicca per cambiarlo",
+		"newSpeaker": "Nuovo ({name})"
 	},
 	"reader": {
 		"back": "Torna all’elenco",
@@ -279,7 +304,8 @@
 			"goAndSeek": "Vai al paragrafo e riproduci da lì"
 		},
 		"renameSpeakers": "Dai un nome ai parlanti",
-		"renameSpeaker": "Rinomina {name}"
+		"renameSpeaker": "Rinomina {name}",
+		"correctSpeaker": "Correggi il parlante…"
 	},
 	"layout": {
 		"serviceErrors": {

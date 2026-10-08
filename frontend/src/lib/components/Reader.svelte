@@ -8,6 +8,7 @@
 	import GoToSegment from './GoToSegment.svelte';
 	import ModalDownloadOptions from './ModalDownloadOptions.svelte';
 	import ModalSpeakerNames from './ModalSpeakerNames.svelte';
+	import ModalSegmentSpeakers from './ModalSegmentSpeakers.svelte';
 	import IconButton from './ui/IconButton.svelte';
 	import SearchField from './ui/SearchField.svelte';
 	import Select from './ui/Select.svelte';
@@ -36,6 +37,8 @@
 	let downloadOpen = false;
 	let speakersOpen = false;
 	let speakerFocus = null;
+	let correctOpen = false;
+	let correctIndices = [];
 	let loadMoreButton;
 	let observer;
 
@@ -199,6 +202,11 @@
 		if (media?.paused) togglePlay();
 	}
 
+	function openCorrection(turn) {
+		correctIndices = turn.indices;
+		correctOpen = true;
+	}
+
 	function openSpeakers(label = null) {
 		speakerFocus = label;
 		speakersOpen = true;
@@ -236,6 +244,14 @@
 	onListen={listenAt}
 	onTogglePlay={togglePlay}
 	{paused}
+	onSaved={(updated) => currentTranscription.set(updated)}
+/>
+<ModalSegmentSpeakers
+	bind:open={correctOpen}
+	tr={$currentTranscription}
+	{segments}
+	indices={correctIndices}
+	onListen={listenAt}
 	onSaved={(updated) => currentTranscription.set(updated)}
 />
 
@@ -383,6 +399,7 @@
 						playing={index === playingTurn}
 						onSeek={seekTo}
 						onRename={openSpeakers}
+						onCorrect={openCorrection}
 					/>
 				{/each}
 			</div>

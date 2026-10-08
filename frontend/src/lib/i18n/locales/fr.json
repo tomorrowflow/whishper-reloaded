@@ -191,7 +191,7 @@
 		},
 		"speakers": {
 			"title": "Intervenants",
-			"hint": "Donnez un nom à chaque voix ; il remplace « Speaker N » dans toute la transcription et dans les téléchargements. Si la diarisation a séparé une personne en deux voix (par exemple après un changement de micro), donnez-leur le même nom pour les fusionner.",
+			"hint": "Donnez un nom à chaque voix ; il remplace « Speaker N » dans toute la transcription et dans les téléchargements. Si la diarisation a séparé une personne en deux voix (par exemple après un changement de micro), fusionnez-les avec « Fusionner avec… ».",
 			"stats": "{duration} · {count, plural, one {# segment} other {# segments}}",
 			"listen": "Écouter cette voix",
 			"merged": "{from} voix → {to} intervenants",
@@ -200,7 +200,30 @@
 				"success": "Noms des intervenants enregistrés.",
 				"error": "Impossible d'enregistrer les noms. Veuillez réessayer."
 			},
-			"pause": "Mettre en pause"
+			"pause": "Mettre en pause",
+			"join": {
+				"label": "Fusionner cet intervenant avec un autre",
+				"placeholder": "Fusionner avec…",
+				"confirm": "Fusionner {from} avec {into} ? {count, plural, one {Le # segment} other {Les # segments}} de {from} seront attribués à {into}. Cette action est irréversible.",
+				"action": "Fusionner",
+				"toasts": {
+					"success": "{from} fusionné avec {into}.",
+					"error": "Impossible de fusionner les intervenants. Veuillez réessayer."
+				}
+			}
+		},
+		"segmentSpeakers": {
+			"title": "Corriger l’intervenant",
+			"hint": "La diarisation a attribué ces phrases au même intervenant. Choisissez le bon intervenant pour chaque phrase ; le paragraphe est scindé là où l’intervenant change.",
+			"listen": "Écouter cette phrase",
+			"speakerFor": "Intervenant de la phrase à {time}",
+			"newSpeaker": "Nouvel intervenant ({name})",
+			"save": "Enregistrer",
+			"toasts": {
+				"success": "Intervenants corrigés.",
+				"error": "Impossible de corriger les intervenants. Veuillez réessayer.",
+				"conflict": "La transcription a changé entre-temps. Rechargez la page et réessayez."
+			}
 		}
 	},
 	"editor": {
@@ -248,7 +271,9 @@
 			"saved": "Enregistré !",
 			"autosaveDisabled": "L'enregistrement automatique est désactivé.",
 			"autosaveEnabled": "Enregistrement automatique activé."
-		}
+		},
+		"speaker": "Intervenant : {name} — cliquez pour modifier",
+		"newSpeaker": "Nouveau ({name})"
 	},
 	"reader": {
 		"back": "Retour à la liste",
@@ -279,7 +304,8 @@
 			"goAndSeek": "Aller au paragraphe et lire à partir de là"
 		},
 		"renameSpeakers": "Nommer les intervenants",
-		"renameSpeaker": "Renommer {name}"
+		"renameSpeaker": "Renommer {name}",
+		"correctSpeaker": "Corriger l’intervenant…"
 	},
 	"layout": {
 		"serviceErrors": {

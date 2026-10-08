@@ -191,7 +191,7 @@
 		},
 		"speakers": {
 			"title": "Oradores",
-			"hint": "Dê um nome a cada voz; substitui \"Speaker N\" em toda a transcrição e nas transferências. Se a diarização dividiu uma pessoa em duas vozes (por exemplo, após uma troca de microfone), dê o mesmo nome a ambas para as juntar.",
+			"hint": "Dê um nome a cada voz; substitui \"Speaker N\" em toda a transcrição e nas transferências. Se a diarização dividiu uma pessoa em duas vozes (por exemplo, após uma troca de microfone), junte-as com \"Juntar a…\".",
 			"stats": "{duration} · {count, plural, one {# segmento} other {# segmentos}}",
 			"listen": "Ouvir esta voz",
 			"merged": "{from} vozes → {to} oradores",
@@ -200,7 +200,30 @@
 				"success": "Nomes dos oradores guardados.",
 				"error": "Não foi possível guardar os nomes. Tente novamente."
 			},
-			"pause": "Pausar"
+			"pause": "Pausar",
+			"join": {
+				"label": "Juntar este orador a outro",
+				"placeholder": "Juntar a…",
+				"confirm": "Juntar {from} a {into}? {count, plural, one {O # segmento} other {Os # segmentos}} de {from} passarão a ser atribuídos a {into}. Esta ação não pode ser desfeita.",
+				"action": "Juntar",
+				"toasts": {
+					"success": "{from} juntado a {into}.",
+					"error": "Não foi possível juntar os oradores. Tente novamente."
+				}
+			}
+		},
+		"segmentSpeakers": {
+			"title": "Corrigir o orador",
+			"hint": "A diarização atribuiu estas frases ao mesmo orador. Escolha o orador certo para cada frase; o parágrafo é dividido onde o orador muda.",
+			"listen": "Ouvir esta frase",
+			"speakerFor": "Orador da frase em {time}",
+			"newSpeaker": "Novo orador ({name})",
+			"save": "Guardar",
+			"toasts": {
+				"success": "Oradores corrigidos.",
+				"error": "Não foi possível corrigir os oradores. Tente novamente.",
+				"conflict": "A transcrição mudou entretanto. Recarregue a página e tente novamente."
+			}
 		}
 	},
 	"editor": {
@@ -248,7 +271,9 @@
 			"saved": "Salvo!",
 			"autosaveDisabled": "O salvamento automático está desativado.",
 			"autosaveEnabled": "Salvamento automático ativado."
-		}
+		},
+		"speaker": "Orador: {name} — clique para alterar",
+		"newSpeaker": "Novo ({name})"
 	},
 	"reader": {
 		"back": "Voltar para a lista",
@@ -279,7 +304,8 @@
 			"goAndSeek": "Ir para o parágrafo e reproduzir a partir dele"
 		},
 		"renameSpeakers": "Nomear os oradores",
-		"renameSpeaker": "Renomear {name}"
+		"renameSpeaker": "Renomear {name}",
+		"correctSpeaker": "Corrigir o orador…"
 	},
 	"layout": {
 		"serviceErrors": {

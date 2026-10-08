@@ -191,7 +191,7 @@
 		},
 		"speakers": {
 			"title": "Speakers",
-			"hint": "Give each voice a name; it replaces \"Speaker N\" throughout the transcript and in downloads. If diarization split one person into two voices (e.g. after a microphone change), give both the same name to merge them.",
+			"hint": "Give each voice a name; it replaces \"Speaker N\" throughout the transcript and in downloads. If diarization split one person into two voices (e.g. after a microphone change), join them with \"Join into…\".",
 			"stats": "{duration} · {count, plural, one {# segment} other {# segments}}",
 			"listen": "Listen to this voice",
 			"merged": "{from} voices → {to} speakers",
@@ -200,7 +200,30 @@
 				"success": "Speaker names saved.",
 				"error": "Failed to save speaker names. Please try again."
 			},
-			"pause": "Pause"
+			"pause": "Pause",
+			"join": {
+				"label": "Join this speaker into another one",
+				"placeholder": "Join into…",
+				"confirm": "Join {from} into {into}? All {count, plural, one {# segment} other {# segments}} of {from} will be attributed to {into}. This cannot be undone.",
+				"action": "Join",
+				"toasts": {
+					"success": "{from} joined into {into}.",
+					"error": "Failed to join the speakers. Please try again."
+				}
+			}
+		},
+		"segmentSpeakers": {
+			"title": "Correct the speaker",
+			"hint": "Diarization assigned these sentences to the same speaker. Pick the right speaker for each sentence; the paragraph is split where the speaker changes.",
+			"listen": "Listen to this sentence",
+			"speakerFor": "Speaker of the sentence at {time}",
+			"newSpeaker": "New speaker ({name})",
+			"save": "Save",
+			"toasts": {
+				"success": "Speakers corrected.",
+				"error": "Failed to correct the speakers. Please try again.",
+				"conflict": "The transcription changed in the meantime. Reload the page and try again."
+			}
 		}
 	},
 	"editor": {
@@ -248,7 +271,9 @@
 			"saved": "Saved!",
 			"autosaveDisabled": "Autosave is disabled.",
 			"autosaveEnabled": "Autosave enabled."
-		}
+		},
+		"speaker": "Speaker: {name} — click to change",
+		"newSpeaker": "New ({name})"
 	},
 	"reader": {
 		"back": "Back to the list",
@@ -279,7 +304,8 @@
 			"goAndSeek": "Go to paragraph and play from there"
 		},
 		"renameSpeakers": "Name the speakers",
-		"renameSpeaker": "Rename {name}"
+		"renameSpeaker": "Rename {name}",
+		"correctSpeaker": "Correct the speaker…"
 	},
 	"layout": {
 		"serviceErrors": {

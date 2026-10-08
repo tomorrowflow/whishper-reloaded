@@ -191,7 +191,7 @@
 		},
 		"speakers": {
 			"title": "Hablantes",
-			"hint": "Asigna un nombre a cada voz; sustituye a \"Speaker N\" en toda la transcripción y en las descargas. Si la diarización dividió a una persona en dos voces (por ejemplo, tras un cambio de micrófono), dales el mismo nombre para unirlas.",
+			"hint": "Asigna un nombre a cada voz; sustituye a \"Speaker N\" en toda la transcripción y en las descargas. Si la diarización dividió a una persona en dos voces (por ejemplo, tras un cambio de micrófono), únelas con \"Unir con…\".",
 			"stats": "{duration} · {count, plural, one {# segmento} other {# segmentos}}",
 			"listen": "Escuchar esta voz",
 			"merged": "{from} voces → {to} hablantes",
@@ -200,7 +200,30 @@
 				"success": "Nombres de los hablantes guardados.",
 				"error": "No se pudieron guardar los nombres. Inténtalo de nuevo."
 			},
-			"pause": "Pausar"
+			"pause": "Pausar",
+			"join": {
+				"label": "Unir este hablante con otro",
+				"placeholder": "Unir con…",
+				"confirm": "¿Unir {from} con {into}? {count, plural, one {El # segmento} other {Los # segmentos}} de {from} se atribuirán a {into}. Esta acción no se puede deshacer.",
+				"action": "Unir",
+				"toasts": {
+					"success": "{from} unido con {into}.",
+					"error": "No se pudieron unir los hablantes. Inténtalo de nuevo."
+				}
+			}
+		},
+		"segmentSpeakers": {
+			"title": "Corregir el hablante",
+			"hint": "La diarización atribuyó estas frases al mismo hablante. Elige el hablante correcto para cada frase; el párrafo se divide donde cambia el hablante.",
+			"listen": "Escuchar esta frase",
+			"speakerFor": "Hablante de la frase en {time}",
+			"newSpeaker": "Nuevo hablante ({name})",
+			"save": "Guardar",
+			"toasts": {
+				"success": "Hablantes corregidos.",
+				"error": "No se pudieron corregir los hablantes. Inténtalo de nuevo.",
+				"conflict": "La transcripción ha cambiado mientras tanto. Recarga la página e inténtalo de nuevo."
+			}
 		}
 	},
 	"editor": {
@@ -248,7 +271,9 @@
 			"saved": "¡Guardado!",
 			"autosaveDisabled": "El autoguardado está desactivado.",
 			"autosaveEnabled": "Autoguardado activado."
-		}
+		},
+		"speaker": "Hablante: {name} — haz clic para cambiarlo",
+		"newSpeaker": "Nuevo ({name})"
 	},
 	"reader": {
 		"back": "Volver a la lista",
@@ -279,7 +304,8 @@
 			"goAndSeek": "Ir al párrafo y reproducir desde allí"
 		},
 		"renameSpeakers": "Nombrar a los hablantes",
-		"renameSpeaker": "Renombrar a {name}"
+		"renameSpeaker": "Renombrar a {name}",
+		"correctSpeaker": "Corregir el hablante…"
 	},
 	"layout": {
 		"serviceErrors": {

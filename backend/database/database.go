@@ -8,6 +8,7 @@ type Db interface {
 	NewTranscription(*models.Transcription) (*models.Transcription, error)
 	UpdateTranscription(*models.Transcription) (*models.Transcription, error)
 	UpdateSpeakerNames(string, map[string]string) (*models.Transcription, error)
+	UpdateSegmentSpeakers(string, map[string]string) (*models.Transcription, error)
 	DeleteTranscription(string) error
 	GetTranscription(string) *models.Transcription
 	GetAllTranscriptions() []*models.Transcription

@@ -235,3 +235,34 @@ func (m *MongoDb) UpdateSpeakerNames(id string, names map[string]string) (*model
 
 	return m.GetTranscription(id), nil
 }
+
+// UpdateSegmentSpeakers sets the speaker of individual segments. `paths` maps a
+// document path ("result.segments.12.speaker") to the new label; only those fields
+// are written, so a correction never overwrites text edited elsewhere.
+func (m *MongoDb) UpdateSegmentSpeakers(id string, paths map[string]string) (*models.Transcription, error) {
+	collection := m.client.Database("whishper").Collection("transcriptions")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	set := bson.D{}
+	for path, speaker := range paths {
+		set = append(set, primitive.E{Key: path, Value: speaker})
+	}
+
+	filter := bson.D{primitive.E{Key: "_id", Value: oid}}
+	update := bson.D{primitive.E{Key: "$set", Value: set}}
+	updateResult, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return nil, err
+	}
+	if updateResult.MatchedCount == 0 {
+		return nil, errors.New("no documents matched the filter")
+	}
+
+	return m.GetTranscription(id), nil
+}

@@ -59,6 +59,53 @@ export const saveSpeakerNames = async function (id, names) {
     return response.json();
 }
 
+// The diarization labels used in a transcription, in order of first appearance.
+export const speakerLabels = function (segments) {
+    return [...new Set((segments ?? []).map((segment) => segment.speaker).filter(Boolean))];
+}
+
+// A label no segment uses yet, for assigning a sentence to a speaker diarization missed.
+export const nextSpeakerLabel = function (segments) {
+    let highest = speakerLabels(segments).reduce((max, label) => {
+        let match = /^SPEAKER_(\d+)$/.exec(label);
+        return match ? Math.max(max, parseInt(match[1], 10)) : max;
+    }, -1);
+    return `SPEAKER_${String(highest + 1).padStart(2, '0')}`;
+}
+
+// Reassigns individual segments to another speaker. `changes` is a list of
+// { index, start, speaker }; start guards against correcting a segment that moved.
+// Returns the updated transcription.
+export const saveSegmentSpeakers = async function (id, changes) {
+    const response = await fetch(`${CLIENT_API_HOST}/api/transcriptions/${id}/segment-speakers`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(changes)
+    });
+
+    if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${await response.text()}`);
+    }
+
+    return response.json();
+}
+
+// Joins the speakers in `from` into `into`: their segments are relabelled for good.
+// Returns the updated transcription.
+export const mergeSpeakers = async function (id, from, into) {
+    const response = await fetch(`${CLIENT_API_HOST}/api/transcriptions/${id}/merge-speakers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, into })
+    });
+
+    if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${await response.text()}`);
+    }
+
+    return response.json();
+}
+
 export const renameTranscription = async function (id, newFileName) {
     const formData = new FormData();
     formData.append('newFileName', newFileName);
@@ -206,7 +253,7 @@ export const speakerPalette = function (label, names = null) {
 export const buildSpeakerTurns = function (segments, names = null) {
     let turns = [];
 
-    (segments ?? []).forEach((segment) => {
+    (segments ?? []).forEach((segment, index) => {
         let text = (segment.text ?? '').trim();
         if (text === '') return;
 
@@ -217,8 +264,10 @@ export const buildSpeakerTurns = function (segments, names = null) {
         if (last && speaker !== null && last.speaker === speaker) {
             last.text += ` ${text}`;
             last.end = segment.end;
+            last.indices.push(index);
         } else {
-            turns.push({ label, speaker, text, start: segment.start, end: segment.end });
+            // indices: positions of the turn's segments, for correcting their speaker
+            turns.push({ label, speaker, text, start: segment.start, end: segment.end, indices: [index] });
         }
     });
 
