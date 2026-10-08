@@ -112,9 +112,9 @@
 			"vadThreshold": "VAD threshold",
 			"vadThresholdPlaceholder": "0.5 (default)",
 			"vadMinSpeech": "Min speech duration (ms)",
-			"vadMinSpeechPlaceholder": "250 (default)",
+			"vadMinSpeechPlaceholder": "0 (default)",
 			"vadMinSilence": "Min silence duration (ms)",
-			"vadMinSilencePlaceholder": "500 (default)",
+			"vadMinSilencePlaceholder": "2000 (default)",
 			"start": "Start",
 			"errorValidUrl": "Enter a valid URL",
 			"toasts": {
@@ -199,7 +199,8 @@
 			"toasts": {
 				"success": "Speaker names saved.",
 				"error": "Failed to save speaker names. Please try again."
-			}
+			},
+			"pause": "Pause"
 		}
 	},
 	"editor": {

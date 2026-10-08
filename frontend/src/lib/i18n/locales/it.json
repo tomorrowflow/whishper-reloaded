@@ -112,9 +112,9 @@
 			"vadThreshold": "Soglia VAD",
 			"vadThresholdPlaceholder": "0.5 (predefinito)",
 			"vadMinSpeech": "Durata minima della voce (ms)",
-			"vadMinSpeechPlaceholder": "250 (predefinito)",
+			"vadMinSpeechPlaceholder": "0 (predefinito)",
 			"vadMinSilence": "Durata minima del silenzio (ms)",
-			"vadMinSilencePlaceholder": "500 (predefinito)",
+			"vadMinSilencePlaceholder": "2000 (predefinito)",
 			"start": "Avvia",
 			"errorValidUrl": "Inserisci un URL valido",
 			"toasts": {
@@ -199,7 +199,8 @@
 			"toasts": {
 				"success": "Nomi dei parlanti salvati.",
 				"error": "Impossibile salvare i nomi. Riprova."
-			}
+			},
+			"pause": "Metti in pausa"
 		}
 	},
 	"editor": {

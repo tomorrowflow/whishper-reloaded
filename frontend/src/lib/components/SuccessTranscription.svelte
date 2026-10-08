@@ -83,8 +83,8 @@
 				title={$_('transcription.meta.vadTooltip', {
 					values: {
 						threshold: tr.vad_threshold ?? 0.5,
-						minSpeech: tr.vad_min_speech_duration_ms ?? 250,
-						minSilence: tr.vad_min_silence_duration_ms ?? 500
+						minSpeech: tr.vad_min_speech_duration_ms ?? 0,
+						minSilence: tr.vad_min_silence_duration_ms ?? 2000
 					}
 				})}
 			>

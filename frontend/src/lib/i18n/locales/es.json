@@ -112,9 +112,9 @@
 			"vadThreshold": "Umbral VAD",
 			"vadThresholdPlaceholder": "0.5 (por defecto)",
 			"vadMinSpeech": "Duración mínima de habla (ms)",
-			"vadMinSpeechPlaceholder": "250 (por defecto)",
+			"vadMinSpeechPlaceholder": "0 (por defecto)",
 			"vadMinSilence": "Duración mínima de silencio (ms)",
-			"vadMinSilencePlaceholder": "500 (por defecto)",
+			"vadMinSilencePlaceholder": "2000 (por defecto)",
 			"start": "Iniciar",
 			"errorValidUrl": "Introduce una URL válida",
 			"toasts": {
@@ -199,7 +199,8 @@
 			"toasts": {
 				"success": "Nombres de los hablantes guardados.",
 				"error": "No se pudieron guardar los nombres. Inténtalo de nuevo."
-			}
+			},
+			"pause": "Pausar"
 		}
 	},
 	"editor": {

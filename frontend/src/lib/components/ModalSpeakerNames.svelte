@@ -5,18 +5,32 @@
 	import { saveSpeakerNames, speakerName, speakerPalette, formatClockTime } from '$lib/utils';
 	import Modal from './ui/Modal.svelte';
 	import Button from './ui/Button.svelte';
-	import { Play, Users, X } from 'lucide-svelte';
+	import { Pause, Play, Users, X } from 'lucide-svelte';
 
 	export let open = false;
 	export let tr; // full transcription, with result.segments and speakerNames
 	export let focusLabel = null; // raw label whose input gets the focus on open
 	export let onListen = null; // (time) => void, plays the recording from `time`
+	export let onTogglePlay = null; // () => void, pauses or resumes the recording
+	export let paused = true; // whether the recording is currently paused
 	export let onSaved = null; // (transcription) => void
 
 	// Names are always edited on the raw diarization labels, never on the merged
 	// speakers: that keeps a merge reversible, by giving a label its own name again.
 	let drafts = {};
 	let saving = false;
+	let listening = null; // label whose voice sample was started last
+
+	// The sample button mirrors the player: the sample being heard shows pause, and
+	// the same button resumes it. Any other sample starts from its own sentence.
+	function toggleSample(speaker) {
+		if (listening === speaker.label && onTogglePlay) {
+			onTogglePlay();
+			return;
+		}
+		listening = speaker.label;
+		onListen(speaker.sample.start);
+	}
 
 	$: speakers = collectSpeakers(tr?.result?.segments ?? []);
 
@@ -44,7 +58,14 @@
 	let wasOpen = false;
 	$: if (open !== wasOpen) {
 		wasOpen = open;
-		if (open) reset();
+		if (open) {
+			reset();
+		} else {
+			// A sample is only for recognising a voice; don't leave the meeting playing
+			// once the dialog is gone.
+			if (listening && !paused) onTogglePlay?.();
+			listening = null;
+		}
 	}
 
 	async function reset() {
@@ -133,14 +154,18 @@
 					{#if speaker.sample?.text}
 						<div class="mt-2 flex items-start gap-2 pl-[6.6rem] max-sm:pl-0">
 							{#if onListen}
+								{@const playing = listening === speaker.label && !paused}
 								<button
 									type="button"
-									title={$_('modals.speakers.listen')}
-									aria-label={$_('modals.speakers.listen')}
-									on:click={() => onListen(speaker.sample.start)}
-									class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary transition-colors hover:bg-primary/25"
+									title={playing ? $_('modals.speakers.pause') : $_('modals.speakers.listen')}
+									aria-label={playing ? $_('modals.speakers.pause') : $_('modals.speakers.listen')}
+									aria-pressed={playing}
+									on:click={() => toggleSample(speaker)}
+									class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors {playing
+										? 'bg-primary text-primary-foreground hover:bg-primary/90'
+										: 'bg-primary/15 text-primary hover:bg-primary/25'}"
 								>
-									<Play size={11} />
+									{#if playing}<Pause size={11} />{:else}<Play size={11} />{/if}
 								</button>
 							{/if}
 							<p class="line-clamp-2 text-[0.78rem] italic text-muted-foreground">

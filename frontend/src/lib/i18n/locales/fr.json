@@ -112,9 +112,9 @@
 			"vadThreshold": "Seuil VAD",
 			"vadThresholdPlaceholder": "0.5 (par défaut)",
 			"vadMinSpeech": "Durée minimale de parole (ms)",
-			"vadMinSpeechPlaceholder": "250 (par défaut)",
+			"vadMinSpeechPlaceholder": "0 (par défaut)",
 			"vadMinSilence": "Durée minimale de silence (ms)",
-			"vadMinSilencePlaceholder": "500 (par défaut)",
+			"vadMinSilencePlaceholder": "2000 (par défaut)",
 			"start": "Démarrer",
 			"errorValidUrl": "Saisissez une URL valide",
 			"toasts": {
@@ -199,7 +199,8 @@
 			"toasts": {
 				"success": "Noms des intervenants enregistrés.",
 				"error": "Impossible d'enregistrer les noms. Veuillez réessayer."
-			}
+			},
+			"pause": "Mettre en pause"
 		}
 	},
 	"editor": {

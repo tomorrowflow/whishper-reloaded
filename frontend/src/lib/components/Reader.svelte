@@ -221,6 +221,8 @@
 	tr={$currentTranscription}
 	focusLabel={speakerFocus}
 	onListen={listenAt}
+	onTogglePlay={togglePlay}
+	{paused}
 	onSaved={(updated) => currentTranscription.set(updated)}
 />
 
