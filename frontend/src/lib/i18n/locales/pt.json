@@ -260,7 +260,7 @@
 		"loadingMore": "Carregando mais...",
 		"paragraphs": "{count, plural, one {# parágrafo} other {# parágrafos}}",
 		"speakers": "{count, plural, one {# falante} other {# falantes}}",
-		"seekHere": "Reproduzir a partir daqui",
+		"seekHere": "Ir para este parágrafo",
 		"play": "Reproduzir",
 		"pause": "Pausar",
 		"seek": "Navegar",

@@ -260,7 +260,7 @@
 		"loadingMore": "Chargement...",
 		"paragraphs": "{count, plural, one {# paragraphe} other {# paragraphes}}",
 		"speakers": "{count, plural, one {# locuteur} other {# locuteurs}}",
-		"seekHere": "Lire à partir d’ici",
+		"seekHere": "Aller à ce paragraphe",
 		"play": "Lecture",
 		"pause": "Pause",
 		"seek": "Se déplacer",

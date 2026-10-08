@@ -100,12 +100,12 @@
 	// --- Navigation ---------------------------------------------------------
 	// Turns past the rendered window have no row to scroll to yet, so grow the window
 	// first and wait for Svelte to flush before looking the row up.
-	async function scrollToTurn(index) {
+	async function scrollToTurn(index, behavior = 'smooth') {
 		if (index < 0 || index >= turns.length) return;
 		if (index >= turnsToShow) turnsToShow = index + 10;
 		await tick();
 		const rows = document.querySelectorAll('[data-reader-turn]');
-		rows[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		rows[index]?.scrollIntoView({ behavior, block: 'center' });
 	}
 
 	function turnIndexAt(time) {
@@ -126,13 +126,14 @@
 	let media;
 	let canPlay = false;
 	let paused = true;
-	let everPlayed = false;
+	// Set once the user has played or positioned the media; until then the time is 0
+	// and highlighting would light up the first paragraph of every transcript.
+	let engaged = false;
 	let duration = 0;
 	let mediaError = '';
 
-	// Which turn the playhead currently sits in. Only meaningful once something has
-	// played: before that the time is 0 and every transcript would light up its first turn.
-	$: playingTurn = everPlayed ? turnIndexAt($currentVideoPlayerTime) : -1;
+	// Which turn the playhead currently sits in, highlighted once the user engaged.
+	$: playingTurn = engaged ? turnIndexAt($currentVideoPlayerTime) : -1;
 
 	$: mediaSrc = $currentTranscription
 		? `${CLIENT_API_HOST}/api/video/${encodeURIComponent($currentTranscription.fileName)}`
@@ -176,7 +177,18 @@
 	}
 
 	function seekTo(time) {
+		engaged = true;
 		$currentVideoPlayerTime = time;
+	}
+
+	// Dragging the slider moves the reading position along with the audio. Scrolling
+	// is instant and once per frame: smooth scrolls would pile up while dragging.
+	let scrollFrame;
+	function seekFromSlider(e) {
+		if (!duration) return;
+		seekTo((e.target.value / 100) * duration);
+		cancelAnimationFrame(scrollFrame);
+		scrollFrame = requestAnimationFrame(() => scrollToTurn(playingTurn, 'auto'));
 	}
 
 	// Plays a voice sample from the speakers dialog, so a speaker can be recognised
@@ -212,6 +224,7 @@
 	onDestroy(() => {
 		observer?.disconnect();
 		clearTimeout(revealTimer);
+		if (browser) cancelAnimationFrame(scrollFrame);
 	});
 </script>
 
@@ -401,7 +414,7 @@
 				}}
 				on:play={() => {
 					paused = false;
-					everPlayed = true;
+					engaged = true;
 				}}
 				on:pause={() => (paused = true)}
 				on:error={handleMediaError}
@@ -441,7 +454,7 @@
 						max="100"
 						aria-label={$_('reader.seek')}
 						value={duration ? ($currentVideoPlayerTime / duration) * 100 : 0}
-						on:input={(e) => duration && ($currentVideoPlayerTime = (e.target.value / 100) * duration)}
+						on:input={seekFromSlider}
 					/>
 					<div class="mt-0.5 flex justify-between text-[0.7rem] font-mono text-muted-foreground tabular-nums">
 						<span>{fmt($currentVideoPlayerTime)}</span>

@@ -260,7 +260,7 @@
 		"loadingMore": "Loading more...",
 		"paragraphs": "{count, plural, one {# paragraph} other {# paragraphs}}",
 		"speakers": "{count, plural, one {# speaker} other {# speakers}}",
-		"seekHere": "Play from here",
+		"seekHere": "Jump to this paragraph",
 		"play": "Play",
 		"pause": "Pause",
 		"seek": "Seek",

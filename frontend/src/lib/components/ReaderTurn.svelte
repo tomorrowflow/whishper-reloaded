@@ -15,6 +15,14 @@
 	export let onRename = null; // (label) => void, opens the speaker names dialog
 
 	$: palette = speakerPalette(turn.label);
+
+	// The whole paragraph jumps the player to it, except when the click ends a text
+	// selection (copying a quote) or lands on one of the paragraph's own buttons.
+	function onParagraphClick(e) {
+		if (!onSeek || e.target.closest('button')) return;
+		if (window.getSelection()?.toString()) return;
+		onSeek(turn.start);
+	}
 	$: parts = splitOnQuery(turn.text, query);
 
 	// Splits the text around every occurrence of the needle so matches can be marked
@@ -41,15 +49,19 @@
 	}
 </script>
 
+<!-- Mouse convenience only: the header button below is the keyboard-accessible way
+     to jump here, so the container needs no role or key handler of its own. -->
+<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 <div
 	data-reader-turn
 	data-start={turn.start}
-	class="group relative rounded-r-xl pl-4 pr-4 py-2.5 transition-colors {palette
+	on:click={onParagraphClick}
+	class="group relative cursor-pointer rounded-r-xl pl-4 pr-4 py-2.5 transition-colors {palette
 		? palette.box
 		: 'border-l-4 border-l-border'} {focused
 		? 'bg-primary/10 ring-1 ring-primary/30'
 		: playing
-		? 'bg-amber-500/5'
+		? 'bg-amber-500/10 ring-1 ring-amber-400/40'
 		: 'hover:bg-muted/40'}"
 >
 	<!-- Paragraph number, revealed on hover so the picker is usable without
