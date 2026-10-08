@@ -138,9 +138,17 @@ def _snap_to_sentences(words: list, labels: list) -> None:
     People take turns at sentence ends, while diarization boundaries and word
     timings are only accurate to a fraction of a second. A change that falls a word
     or two away from a sentence end ("...Anreise. Am | Sonntag hat er...") is moved
-    onto it; one with no sentence end within reach is left alone.
+    onto it; one with no sentence end within reach is left alone. The edges of the
+    segment count as sentence ends too, which keeps a sentence's first words with
+    it ("Die | EGL-Meeting hat er abgesagt?").
     """
     ends = [w["word"].strip().endswith((".", "?", "!", "…")) for w in words]
+
+    def sentence_end_before(j: int) -> bool:
+        # Whether a new speaker could start at word j: at either edge of the
+        # segment, or right after a word that ends a sentence.
+        return j == 0 or j == len(words) or ends[j - 1]
+
     i = 1
     while i < len(labels):
         if labels[i] != labels[i - 1] and not ends[i - 1]:
@@ -149,7 +157,7 @@ def _snap_to_sentences(words: list, labels: list) -> None:
             target = None
             for d in range(1, SENTENCE_SNAP_REACH + 1):
                 for j in (i + d, i - d):
-                    if 1 <= j <= len(words) and ends[j - 1]:
+                    if 0 <= j <= len(words) and sentence_end_before(j):
                         target = j
                         break
                 if target is not None:
