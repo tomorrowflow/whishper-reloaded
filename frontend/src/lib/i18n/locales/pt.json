@@ -82,6 +82,7 @@
 		"actions": {
 			"edit": "Editar",
 			"download": "Baixar",
+			"read": "Ler",
 			"rename": "Renomear",
 			"uploadJson": "Enviar JSON",
 			"translate": "Traduzir",
@@ -165,6 +166,10 @@
 			"fileFormat": "Formato do arquivo",
 			"textLanguage": "Idioma do texto",
 			"includeWords": "Incluir marcações de tempo por palavra",
+			"dialogHint": "Transcrição em texto simples agrupada por turno de fala, por ex. \"Speaker 1: Olá\".",
+			"includeTimestamps": "Incluir marcações de tempo",
+			"includeSpeakers": "Identificar os falantes nas legendas",
+			"unknownSpeaker": "Falante desconhecido",
 			"tooltipFile": "Baixar o arquivo {format} em {language}.",
 			"tooltipCopy": "Copiar o texto bruto no idioma '{language}'.",
 			"tooltipMedia": "Baixar a mídia de origem",
@@ -174,6 +179,26 @@
 			"toasts": {
 				"noData": "Nenhum dado disponível para download",
 				"copied": "Texto copiado para a área de transferência"
+			}
+		},
+		"delete": {
+			"title": "Eliminar a transcrição?",
+			"message": "A transcrição e o respetivo ficheiro de áudio serão eliminados permanentemente. Esta ação não pode ser desfeita.",
+			"toasts": {
+				"success": "Transcrição eliminada.",
+				"error": "Não foi possível eliminar a transcrição. Tente novamente."
+			}
+		},
+		"speakers": {
+			"title": "Oradores",
+			"hint": "Dê um nome a cada voz; substitui \"Speaker N\" em toda a transcrição e nas transferências. Se a diarização dividiu uma pessoa em duas vozes (por exemplo, após uma troca de microfone), dê o mesmo nome a ambas para as juntar.",
+			"stats": "{duration} · {count, plural, one {# segmento} other {# segmentos}}",
+			"listen": "Ouvir esta voz",
+			"merged": "{from} vozes → {to} oradores",
+			"save": "Guardar nomes",
+			"toasts": {
+				"success": "Nomes dos oradores guardados.",
+				"error": "Não foi possível guardar os nomes. Tente novamente."
 			}
 		}
 	},
@@ -223,6 +248,37 @@
 			"autosaveDisabled": "O salvamento automático está desativado.",
 			"autosaveEnabled": "Salvamento automático ativado."
 		}
+	},
+	"reader": {
+		"back": "Voltar para a lista",
+		"openEditor": "Abrir no editor",
+		"download": "Baixar a transcrição",
+		"waiting": "Aguardando o término da transcrição...",
+		"empty": "Esta transcrição ainda não tem texto.",
+		"end": "Fim da conversa",
+		"loadingMore": "Carregando mais...",
+		"paragraphs": "{count, plural, one {# parágrafo} other {# parágrafos}}",
+		"speakers": "{count, plural, one {# falante} other {# falantes}}",
+		"seekHere": "Reproduzir a partir daqui",
+		"play": "Reproduzir",
+		"pause": "Pausar",
+		"seek": "Navegar",
+		"locate": "Ir para o parágrafo em reprodução",
+		"mediaError": "Não foi possível carregar o áudio — {error}",
+		"search": {
+			"placeholder": "Pesquisar na conversa",
+			"matches": "{current} de {total}",
+			"noMatches": "Nenhum resultado",
+			"prev": "Resultado anterior",
+			"next": "Resultado seguinte"
+		},
+		"goTo": {
+			"placeholder": "1-{max}",
+			"goToParagraph": "Ir para o parágrafo",
+			"goAndSeek": "Ir para o parágrafo e reproduzir a partir dele"
+		},
+		"renameSpeakers": "Nomear os oradores",
+		"renameSpeaker": "Renomear {name}"
 	},
 	"layout": {
 		"serviceErrors": {

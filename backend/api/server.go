@@ -87,8 +87,12 @@ func (s *Server) SetupMiddleware() {
 }
 
 func (s *Server) RegisterRoutes() {
-	// Static routes
-	s.Router.Static("/api/video", os.Getenv("UPLOAD_DIR"))
+	// Static routes. ByteRange is required for media seeking: without it the
+	// server answers a Range request with the whole file and a 200, which
+	// breaks scrubbing and makes Safari refuse to play the element at all.
+	s.Router.Static("/api/video", os.Getenv("UPLOAD_DIR"), fiber.Static{
+		ByteRange: true,
+	})
 
 	// Register HTTP route for getting initial state.
 	s.Router.Get("/api/transcriptions", func(c *fiber.Ctx) error {
@@ -153,6 +157,16 @@ func (s *Server) RegisterRoutes() {
 		err := s.handlePatchTranscription(c)
 		if err != nil {
 			log.Error().Err(err).Msg("Error handling PATCH /api/transcriptions")
+		}
+		return err
+	})
+
+	// Register HTTP route for naming the speakers found by diarization.
+	s.Router.Put("/api/transcriptions/:id/speakers", func(c *fiber.Ctx) error {
+		log.Debug().Msgf("PUT /api/transcriptions/%v/speakers", c.Params("id"))
+		err := s.handleUpdateSpeakerNames(c)
+		if err != nil {
+			log.Error().Err(err).Msg("Error handling PUT /api/transcriptions/:id/speakers")
 		}
 		return err
 	})

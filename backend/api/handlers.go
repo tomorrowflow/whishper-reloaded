@@ -62,6 +62,7 @@ func (s *Server) handleListTranscriptions(c *fiber.Ctx) error {
 			VadMinSilenceDurationMS: t.VadMinSilenceDurationMS,
 			Duration:                t.Result.Duration,
 			WordsCount:              t.WordsCount,
+			Diarize:                 t.Diarize,
 			Progress:                t.Progress,
 			DownloadingModel:        t.DownloadingModel,
 			Translations:            make([]models.TranslationListItem, 0, len(t.Translations)),
@@ -203,6 +204,23 @@ func (s *Server) handlePostTranscription(c *fiber.Ctx) error {
 		_, err := fmt.Sscanf(c.FormValue("vad_min_silence_duration_ms"), "%d", &v)
 		if err == nil {
 			transcription.VadMinSilenceDurationMS = &v
+		}
+	}
+	if c.FormValue("diarize") == "true" {
+		transcription.Diarize = true
+	}
+	if c.FormValue("min_speakers") != "" {
+		var v int
+		_, err := fmt.Sscanf(c.FormValue("min_speakers"), "%d", &v)
+		if err == nil {
+			transcription.MinSpeakers = &v
+		}
+	}
+	if c.FormValue("max_speakers") != "" {
+		var v int
+		_, err := fmt.Sscanf(c.FormValue("max_speakers"), "%d", &v)
+		if err == nil {
+			transcription.MaxSpeakers = &v
 		}
 	}
 
@@ -450,4 +468,57 @@ func (s *Server) handleUploadJSON(c *fiber.Ctx) error {
 
 	// Return the updated transcription
 	return c.JSON(updatedTranscription)
+}
+
+// maxSpeakerNameLength caps a speaker display name, in characters.
+const maxSpeakerNameLength = 80
+
+// handleUpdateSpeakerNames stores the display names the user gave to diarization
+// labels. The body is the complete mapping ({"SPEAKER_00": "Alice", ...}); labels
+// missing from it, or mapped to an empty name, fall back to their default name.
+// Giving two labels the same name merges them into one speaker when rendered.
+func (s *Server) handleUpdateSpeakerNames(c *fiber.Ctx) error {
+	id := c.Params("id")
+	t := s.Db.GetTranscription(id)
+	if t == nil {
+		log.Warn().Msgf("Transcription with id %v not found", id)
+		return fiber.NewError(fiber.StatusNotFound, "Not found")
+	}
+
+	var body map[string]string
+	if err := json.Unmarshal(c.Body(), &body); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Body must be a JSON object of label -> name")
+	}
+
+	// Only labels the diarization actually produced can be named.
+	labels := map[string]bool{}
+	for _, segment := range t.Result.Segments {
+		if segment.Speaker != "" {
+			labels[segment.Speaker] = true
+		}
+	}
+
+	names := map[string]string{}
+	for label, name := range body {
+		if !labels[label] {
+			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Unknown speaker label %q", label))
+		}
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		if len([]rune(name)) > maxSpeakerNameLength {
+			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Speaker name longer than %d characters", maxSpeakerNameLength))
+		}
+		names[label] = name
+	}
+
+	ut, err := s.Db.UpdateSpeakerNames(id, names)
+	if err != nil || ut == nil {
+		log.Error().Err(err).Msgf("Error updating speaker names of transcription %v", id)
+		return fiber.NewError(fiber.StatusInternalServerError, "Internal server error")
+	}
+
+	s.BroadcastTranscription(ut)
+	return c.JSON(ut)
 }

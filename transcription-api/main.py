@@ -30,6 +30,9 @@ async def transcribe_endpoint(
     vad_threshold: float = None,
     vad_min_speech_duration_ms: int = None,
     vad_min_silence_duration_ms: int = None,
+    diarize: bool = False,
+    min_speakers: int = None,
+    max_speakers: int = None,
 ):
     if device != "cpu" and device != "cuda":
         return {"detail": "Device must be either cpu or cuda"}
@@ -43,35 +46,43 @@ async def transcribe_endpoint(
         else:
             hotwords_list = hotwords
 
+    hf_token = os.environ.get("HF_TOKEN") if diarize else None
+
     if file is not None:
-        # if a file is uploaded, use it
         return await transcribe_file(
-            file, 
-            model_size.value, 
-            language.value, 
-            device, 
-            beam_size, 
-            initial_prompt, 
+            file,
+            model_size.value,
+            language.value,
+            device,
+            beam_size,
+            initial_prompt,
             hotwords_list,
             vad_filter,
             vad_threshold,
             vad_min_speech_duration_ms,
             vad_min_silence_duration_ms,
+            diarize,
+            hf_token,
+            min_speakers,
+            max_speakers,
         )
     elif filename is not None:
-        # if a filename is provided, use it
         return await transcribe_from_filename(
-            filename, 
-            model_size.value, 
-            language.value, 
-            device, 
-            beam_size, 
-            initial_prompt, 
+            filename,
+            model_size.value,
+            language.value,
+            device,
+            beam_size,
+            initial_prompt,
             hotwords_list,
             vad_filter,
             vad_threshold,
             vad_min_speech_duration_ms,
             vad_min_silence_duration_ms,
+            diarize,
+            hf_token,
+            min_speakers,
+            max_speakers,
         )
     else:
         return {"detail": "No file uploaded and no filename provided"}
@@ -91,6 +102,9 @@ async def transcribe_stream_endpoint(
     vad_threshold: float = None,
     vad_min_speech_duration_ms: int = None,
     vad_min_silence_duration_ms: int = None,
+    diarize: bool = False,
+    min_speakers: int = None,
+    max_speakers: int = None,
 ):
     """
     Same as /transcribe/ but streams NDJSON progress events while the
@@ -103,6 +117,8 @@ async def transcribe_stream_endpoint(
     hotwords_list = None
     if hotwords is not None and isinstance(hotwords, str):
         hotwords_list = [hw.strip() for hw in hotwords.split(",") if hw.strip()]
+
+    hf_token = os.environ.get("HF_TOKEN") if diarize else None
 
     if file is not None:
         contents = await file.read()
@@ -119,6 +135,10 @@ async def transcribe_stream_endpoint(
             vad_threshold,
             vad_min_speech_duration_ms,
             vad_min_silence_duration_ms,
+            diarize,
+            hf_token,
+            min_speakers,
+            max_speakers,
         )
     elif filename is not None:
         generator = transcribe_from_filename_stream(
@@ -133,6 +153,10 @@ async def transcribe_stream_endpoint(
             vad_threshold,
             vad_min_speech_duration_ms,
             vad_min_silence_duration_ms,
+            diarize,
+            hf_token,
+            min_speakers,
+            max_speakers,
         )
     else:
         return {"detail": "No file uploaded and no filename provided"}

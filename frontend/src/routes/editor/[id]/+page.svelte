@@ -10,13 +10,54 @@
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import IconButton from '$lib/components/ui/IconButton.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
-	import { Play, Pause, LocateFixed } from 'lucide-svelte';
+	import { Play, Pause, LocateFixed, AlertTriangle } from 'lucide-svelte';
 
 	let language = writable('original');
 	let segmentsToShow = writable(20);
 	let video;
 	let tolerance = 0.1; // Tolerance level in seconds
 	let canPlay = false;
+	// `video.paused` is a plain DOM property, so Svelte cannot react to it.
+	// Mirror it into local state via the play/pause events instead.
+	let paused = true;
+	let mediaError = '';
+
+	$: mediaSrc = $currentTranscription
+		? `${CLIENT_API_HOST}/api/video/${encodeURIComponent($currentTranscription.fileName)}`
+		: '';
+
+	const MEDIA_ERROR_LABELS = {
+		1: 'Loading aborted',
+		2: 'Network error',
+		3: 'Decode error',
+		4: 'Source not supported'
+	};
+
+	function handleMediaError() {
+		const err = video?.error;
+		mediaError = err
+			? `${MEDIA_ERROR_LABELS[err.code] ?? 'Unknown error'}${err.message ? `: ${err.message}` : ''}`
+			: 'Failed to load media';
+		canPlay = false;
+		console.error('Media element error:', err);
+	}
+
+	// play() returns a promise that rejects when the source never loaded.
+	// Without a catch that surfaces as an unhandled rejection on every click.
+	function togglePlay() {
+		if (!video) return;
+		if (!video.paused) {
+			video.pause();
+			return;
+		}
+		const played = video.play();
+		if (played && typeof played.catch === 'function') {
+			played.catch((err) => {
+				mediaError = err?.message ?? String(err);
+				console.error('Audio playback failed:', err);
+			});
+		}
+	}
 	$: if (canPlay && video && Math.abs(video.currentTime - $currentVideoPlayerTime) > tolerance) {
 		// When testing in Chrome, it works, just see https://stackoverflow.com/a/67584611
 		video.currentTime = $currentVideoPlayerTime;
@@ -133,24 +174,35 @@
 			<!-- Player bar -->
 			<div class="fixed bottom-0 left-0 right-0 bg-card/80 backdrop-blur-md border-t border-border p-4">
 				<div class="flex items-center gap-4 max-w-5xl mx-auto">
+					<!-- No `type` hint: the file may be any of the supported audio
+					     formats, and a wrong hint makes the browser skip the source. -->
 					<audio
 						id="audio"
 						bind:this={video}
+						src={mediaSrc}
+						preload="metadata"
 						on:timeupdate={(e) => ($currentVideoPlayerTime = e.target.currentTime)}
 						on:canplay={() => (canPlay = true)}
 						on:loadedmetadata={() => (canPlay = true)}
+						on:play={() => (paused = false)}
+						on:pause={() => (paused = true)}
+						on:error={handleMediaError}
 						class="hidden"
-					>
-						<source src="{CLIENT_API_HOST}/api/video/{$currentTranscription.fileName}" type="video/mp4" />
-					</audio>
+					/>
 
 					<button
-						class="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all shrink-0"
-						on:click={() => video && (video.paused ? video.play() : video.pause())}
+						class="w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all shrink-0 {mediaError
+							? 'bg-red-500/20 text-red-400 border border-red-500/40'
+							: 'bg-primary text-primary-foreground shadow-primary/20 hover:bg-primary/90'}"
+						title={mediaError || undefined}
+						disabled={!!mediaError}
+						on:click={togglePlay}
 					>
-						{#if !canPlay}
+						{#if mediaError}
+							<AlertTriangle size={18} />
+						{:else if !canPlay}
 							<Spinner size={18} />
-						{:else if video && !video.paused}
+						{:else if !paused}
 							<Pause size={18} />
 						{:else}
 							<Play size={18} />
@@ -167,18 +219,24 @@
 					>
 
 					<div class="flex-1 min-w-0">
-						<input
-							type="range"
-							class="w-full accent-[var(--primary)]"
-							min="0"
-							max="100"
-							value={video && video.duration ? ($currentVideoPlayerTime / video.duration) * 100 : 0}
-							on:input={(e) => video && video.duration && ($currentVideoPlayerTime = (e.target.value / 100) * video.duration)}
-						/>
-						<div class="flex justify-between text-[0.7rem] font-mono text-muted-foreground mt-1">
-							<span>{fmt($currentVideoPlayerTime)}</span>
-							<span>{video ? fmt(video.duration) : '0:00'}</span>
-						</div>
+						{#if mediaError}
+							<p class="text-[0.75rem] font-mono text-red-400 truncate" title={mediaError}>
+								Could not load audio — {mediaError}
+							</p>
+						{:else}
+							<input
+								type="range"
+								class="w-full accent-[var(--primary)]"
+								min="0"
+								max="100"
+								value={video && video.duration ? ($currentVideoPlayerTime / video.duration) * 100 : 0}
+								on:input={(e) => video && video.duration && ($currentVideoPlayerTime = (e.target.value / 100) * video.duration)}
+							/>
+							<div class="flex justify-between text-[0.7rem] font-mono text-muted-foreground mt-1">
+								<span>{fmt($currentVideoPlayerTime)}</span>
+								<span>{video ? fmt(video.duration) : '0:00'}</span>
+							</div>
+						{/if}
 					</div>
 
 					<IconButton variant="primary" title={$_('editor.goToCurrentSegment')} on:click={goToCurrentTimeSegment}>
@@ -208,12 +266,16 @@
 						id="video"
 						controls
 						bind:this={video}
+						src={mediaSrc}
+						preload="metadata"
 						on:timeupdate={(e) => ($currentVideoPlayerTime = e.target.currentTime)}
 						on:canplay={() => (canPlay = true)}
 						on:loadedmetadata={() => (canPlay = true)}
+						on:play={() => (paused = false)}
+						on:pause={() => (paused = true)}
+						on:error={handleMediaError}
 						class="absolute top-0 left-0 w-full h-full"
 					>
-						<source src="{CLIENT_API_HOST}/api/video/{$currentTranscription.fileName}" type="video/mp4" />
 						<track kind="captions" />
 					</video>
 				</div>

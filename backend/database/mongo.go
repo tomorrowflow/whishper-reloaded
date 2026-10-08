@@ -203,3 +203,35 @@ func (m *MongoDb) UpdateTranscription(t *models.Transcription) (*models.Transcri
 
 	return t, nil
 }
+
+// UpdateSpeakerNames replaces only the speaker name mapping of a transcription, so
+// renaming speakers never races with a full-document save from the editor. An empty
+// mapping removes the field, which restores the default "Speaker N" names.
+func (m *MongoDb) UpdateSpeakerNames(id string, names map[string]string) (*models.Transcription, error) {
+	collection := m.client.Database("whishper").Collection("transcriptions")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	filter := bson.D{primitive.E{Key: "_id", Value: oid}}
+	var update bson.D
+	if len(names) == 0 {
+		update = bson.D{primitive.E{Key: "$unset", Value: bson.D{primitive.E{Key: "speaker_names", Value: ""}}}}
+	} else {
+		update = bson.D{primitive.E{Key: "$set", Value: bson.D{primitive.E{Key: "speaker_names", Value: names}}}}
+	}
+
+	updateResult, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return nil, err
+	}
+	if updateResult.MatchedCount == 0 {
+		return nil, errors.New("no documents matched the filter")
+	}
+
+	return m.GetTranscription(id), nil
+}

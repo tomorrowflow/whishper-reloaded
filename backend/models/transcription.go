@@ -25,11 +25,18 @@ type Transcription struct {
 	VadThreshold            *float64           `bson:"vad_threshold,omitempty" json:"vad_threshold,omitempty"`
 	VadMinSpeechDurationMS  *int               `bson:"vad_min_speech_duration_ms,omitempty" json:"vad_min_speech_duration_ms,omitempty"`
 	VadMinSilenceDurationMS *int               `bson:"vad_min_silence_duration_ms,omitempty" json:"vad_min_silence_duration_ms,omitempty"`
+	Diarize                 bool               `bson:"diarize" json:"diarize"`
+	MinSpeakers             *int               `bson:"min_speakers,omitempty" json:"min_speakers,omitempty"`
+	MaxSpeakers             *int               `bson:"max_speakers,omitempty" json:"max_speakers,omitempty"`
 	Result                  WhisperResult      `bson:"result" json:"result"`
 	Translations            []Translation      `bson:"translations" json:"translations"`
+	// Display names chosen by the user for diarization labels ("SPEAKER_00" -> "Alice").
+	// Segments keep their raw labels; the names are applied when rendering and exporting.
+	SpeakerNames            map[string]string  `bson:"speaker_names,omitempty" json:"speakerNames,omitempty"`
 	WordsCount              int                `bson:"words_count,omitempty" json:"words_count,omitempty"`
 	Progress                float64            `bson:"progress,omitempty" json:"progress,omitempty"`
 	DownloadingModel        bool               `bson:"downloading_model,omitempty" json:"downloadingModel,omitempty"`
+	Diarizing               bool               `bson:"-" json:"diarizing,omitempty"`
 }
 
 type TranscriptionListItem struct {
@@ -50,8 +57,10 @@ type TranscriptionListItem struct {
 	VadMinSilenceDurationMS *int                  `json:"vad_min_silence_duration_ms,omitempty"`
 	Duration                float64               `json:"duration"`
 	WordsCount              int                   `json:"words_count"`
+	Diarize                 bool                  `json:"diarize,omitempty"`
 	Progress                float64               `json:"progress,omitempty"`
 	DownloadingModel        bool                  `json:"downloadingModel,omitempty"`
+	Diarizing               bool                  `json:"diarizing,omitempty"`
 	Translations            []TranslationListItem `json:"translations"`
 }
 

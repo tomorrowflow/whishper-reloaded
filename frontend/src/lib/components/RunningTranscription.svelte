@@ -1,6 +1,6 @@
 <script>
 	export let tr;
-	import { deleteTranscription } from '$lib/utils.js';
+	import { requestDelete } from '$lib/utils.js';
 	import { _ } from 'svelte-i18n';
 	import { Trash2 } from 'lucide-svelte';
 	import TranscriptionRow from './TranscriptionRow.svelte';
@@ -11,6 +11,7 @@
 	$: percent = Math.round(progress * 100);
 	$: hasProgress = progress > 0;
 	$: downloadingModel = tr.downloadingModel ?? false;
+	$: diarizing = tr.diarizing ?? false;
 	$: displayName = tr.fileName != '' ? tr.fileName.split('_WHSHPR_')[1] : tr.id;
 </script>
 
@@ -19,6 +20,10 @@
 	{#if downloadingModel}
 		<p class="text-muted-foreground text-[0.75rem] font-mono mt-0.5">
 			{$_('transcription.status.downloadingModel', { values: { model: tr.modelSize } })}
+		</p>
+	{:else if diarizing}
+		<p class="text-violet-400 text-[0.75rem] font-mono mt-0.5 animate-pulse">
+			Identifying speakers…
 		</p>
 	{:else if hasProgress}
 		<p class="text-muted-foreground text-[0.75rem] font-mono mt-0.5">
@@ -36,7 +41,11 @@
 		{/if}
 		<span>{$_('transcription.meta.language', { values: { language: tr.language || 'auto' } })}</span>
 	</p>
-	{#if hasProgress}
+	{#if diarizing}
+		<div class="mt-2 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+			<div class="h-full rounded-full bg-violet-400 animate-pulse"></div>
+		</div>
+	{:else if hasProgress}
 		<div class="mt-2 h-1.5 w-full rounded-full bg-muted overflow-hidden">
 			<div class="h-full rounded-full bg-blue-400 transition-all duration-300" style="width:{percent}%"></div>
 		</div>
@@ -46,7 +55,7 @@
 		<IconButton
 			variant="danger"
 			title={$_('transcription.actions.delete')}
-			on:click={() => deleteTranscription(tr.id)}
+			on:click={() => requestDelete(tr)}
 		>
 			<Trash2 size={14} />
 		</IconButton>

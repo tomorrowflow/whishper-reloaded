@@ -25,6 +25,7 @@
 		bind:value
 		{placeholder}
 		on:input
+		on:keydown
 		class="w-full pl-10 pr-10 py-2.5 rounded-xl bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 transition-all text-[0.85rem]"
 	/>
 	{#if value}

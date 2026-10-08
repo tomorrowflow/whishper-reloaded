@@ -18,7 +18,9 @@ Segment = TypedDict(
         "end": float | str,
         "score": float,
         "words": list[WordData],
+        "speaker": str,
     },
+    total=False,
 )
 
 Transcription = TypedDict(

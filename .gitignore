@@ -17,3 +17,6 @@ transcription-api/models
 .claude
 package-lock.json
 package.json
+# local deployment env files (contain credentials); see example.*.env
+.backend.env
+.frontend.env

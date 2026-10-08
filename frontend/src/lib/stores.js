@@ -33,3 +33,5 @@ export const audioMode = writable(false);
 export const currentPage = writable(1)
 
 export const loadingTranscriptions = writable(true)
+// transcription the user asked to delete, awaiting confirmation (see ModalConfirmDelete)
+export const pendingDelete = writable(null)

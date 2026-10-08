@@ -17,6 +17,11 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${DB_USER:-whishper}
       MONGO_INITDB_ROOT_PASSWORD: ${DB_PASS:-whishper}
+      # MongoDB >= 8.0 bundles a TCMalloc that misuses the kernel rseq ABI and
+      # refuses to start on Linux 6.19 - 7.0.13 (https://jira.mongodb.org/browse/SERVER-121912).
+      # The image ships GLIBC_TUNABLES=glibc.pthread.rseq=0; re-enabling glibc rseq makes
+      # TCMalloc fall back to per-thread caches, which avoids the bug and the startup check.
+      GLIBC_TUNABLES: glibc.pthread.rseq=1
     volumes:
       - ./whishper_data/db_data/db:/data/db
       - ./whishper_data/db_data/logs/:/var/log/mongodb/

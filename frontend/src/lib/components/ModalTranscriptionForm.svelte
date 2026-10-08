@@ -49,6 +49,11 @@
 	let vadMinSpeech = '';
 	let vadMinSilence = '';
 
+	// Diarization settings
+	let enableDiarize = false;
+	let minSpeakers = '';
+	let maxSpeakers = '';
+
 	function handleDrop(e) {
 		e.preventDefault();
 		dragging = false;
@@ -101,6 +106,11 @@
 			if (vadThreshold !== '') formData.append('vad_threshold', vadThreshold);
 			if (vadMinSpeech !== '') formData.append('vad_min_speech_duration_ms', vadMinSpeech);
 			if (vadMinSilence !== '') formData.append('vad_min_silence_duration_ms', vadMinSilence);
+		}
+		if (enableDiarize) {
+			formData.append('diarize', 'true');
+			if (minSpeakers !== '') formData.append('min_speakers', minSpeakers);
+			if (maxSpeakers !== '') formData.append('max_speakers', maxSpeakers);
 		}
 
 		return new Promise((resolve, reject) => {
@@ -293,6 +303,23 @@
 					<div class="space-y-1.5">
 						<label for="vadMinSilence" class="text-muted-foreground text-[0.72rem]">{$_('modals.transcription.vadMinSilence')}</label>
 						<Input id="vadMinSilence" type="number" min="0" bind:value={vadMinSilence} placeholder={$_('modals.transcription.vadMinSilencePlaceholder')} />
+					</div>
+				</div>
+			{/if}
+		</div>
+
+		<!-- Diarization -->
+		<div class="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
+			<Switch bind:checked={enableDiarize} label="Enable speaker diarization (requires HF_TOKEN)" />
+			{#if enableDiarize}
+				<div class="grid grid-cols-2 gap-3">
+					<div class="space-y-1.5">
+						<label for="minSpeakers" class="text-muted-foreground text-[0.72rem]">Min speakers (optional)</label>
+						<Input id="minSpeakers" type="number" min="1" bind:value={minSpeakers} placeholder="auto" />
+					</div>
+					<div class="space-y-1.5">
+						<label for="maxSpeakers" class="text-muted-foreground text-[0.72rem]">Max speakers (optional)</label>
+						<Input id="maxSpeakers" type="number" min="1" bind:value={maxSpeakers} placeholder="auto" />
 					</div>
 				</div>
 			{/if}

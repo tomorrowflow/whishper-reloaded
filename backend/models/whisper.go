@@ -8,12 +8,13 @@ type WhisperResult struct {
 }
 
 type Segment struct {
-	End   float64 `json:"end"`
-	ID    string  `json:"id"`
-	Start float64 `json:"start"`
-	Score float64 `json:"score"`
-	Text  string  `json:"text"`
-	Words []Word  `json:"words"`
+	End     float64 `json:"end"`
+	ID      string  `json:"id"`
+	Start   float64 `json:"start"`
+	Score   float64 `json:"score"`
+	Text    string  `json:"text"`
+	Words   []Word  `json:"words"`
+	Speaker string  `json:"speaker,omitempty"`
 }
 
 type Word struct {

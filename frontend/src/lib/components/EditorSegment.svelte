@@ -1,5 +1,6 @@
 <script>
 	import { editorSettings } from '$lib/stores';
+	import { speakerName, speakerPalette } from '$lib/utils';
 	import { currentVideoPlayerTime, currentTranscription, editorHistory } from '$lib/stores';
 	import { afterUpdate } from 'svelte';
 	import { _ } from 'svelte-i18n';
@@ -141,6 +142,12 @@
 
 	$: cpsValue = getCps(segment);
 	$: cpsHigh = cpsValue > 16;
+
+	$: speakerNames = $currentTranscription?.speakerNames;
+	$: palette = speakerPalette(segment.speaker, speakerNames);
+	// Abbreviate the same name the speaker-aware exports use ("Speaker 1" -> "S1"),
+	// so the badge numbering matches a downloaded transcript. Custom names are kept.
+	$: speakerBadge = (speakerName(segment.speaker, speakerNames) ?? '').replace(/^Speaker /, 'S');
 </script>
 
 <div
@@ -148,6 +155,8 @@
 	data-start={segment.start}
 	class="group rounded-xl border bg-card transition-all px-4 py-3 {isActive
 		? 'border-amber-400/50 ring-1 ring-amber-400/30 bg-amber-500/5'
+		: palette
+		? palette.box + ' border-border'
 		: 'border-border hover:border-border/80'}"
 >
 	<div class="flex items-start gap-3">
@@ -155,6 +164,16 @@
 		<span class="text-muted-foreground text-[0.7rem] font-mono mt-2.5 w-6 text-right shrink-0 tabular-nums">
 			{index}
 		</span>
+
+		{#if speakerBadge && palette}
+		<!-- Speaker badge -->
+		<span
+			class="mt-2 shrink-0 max-w-[7rem] truncate px-1.5 py-0.5 rounded border text-[0.65rem] font-mono font-semibold {palette.badge}"
+			title={speakerBadge}
+		>
+			{speakerBadge}
+		</span>
+		{/if}
 
 		<!-- Timestamps -->
 		<div class="flex flex-col gap-1.5 shrink-0">

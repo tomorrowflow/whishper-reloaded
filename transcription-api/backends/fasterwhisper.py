@@ -65,11 +65,16 @@ class FasterWhisperBackend(Backend):
         vad_min_speech_duration_ms: int = None,
         vad_min_silence_duration_ms: int = None,
         progress_callback=None,
+        diarize: bool = False,
+        hf_token: str = None,
+        min_speakers: int = None,
+        max_speakers: int = None,
     ) -> Transcription:
         """
         Return word level transcription data.
         World level probabilities are calculated by ctranslate2.models.Whisper.align
-        Accepts additional parameters: beam_size, initial_prompt, hotwords, and VAD options.
+        Accepts additional parameters: beam_size, initial_prompt, hotwords, VAD options,
+        and optional speaker diarization via pyannote.audio.
         """
         result: list[Segment] = []
         assert self.model is not None
@@ -151,6 +156,17 @@ class FasterWhisperBackend(Backend):
                     progress_callback(progress, segment_extract)
         text = " ".join([segment["text"] for segment in result])
         text = ' '.join(text.strip().split())
+
+        if diarize:
+            from .diarize import assign_speakers
+            result = assign_speakers(
+                input, result,
+                hf_token=hf_token,
+                min_speakers=min_speakers,
+                max_speakers=max_speakers,
+                device=self.device,
+            )
+
         transcription: Transcription = {
             "text": text,
             "language": info.language,

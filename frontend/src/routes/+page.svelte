@@ -9,6 +9,7 @@
 	import ModalTranslationForm from '$lib/components/ModalTranslationForm.svelte';
 	import ModalRenameFile from '$lib/components/ModalRenameFile.svelte';
 	import ModalUploadJSON from '$lib/components/ModalUploadJSON.svelte';
+	import ModalConfirmDelete from '$lib/components/ModalConfirmDelete.svelte';
 	import SuccessTranscription from '$lib/components/SuccessTranscription.svelte';
 	import RunningTranscription from '$lib/components/RunningTranscription.svelte';
 	import PendingTranscription from '$lib/components/PendingTranscription.svelte';
@@ -242,6 +243,7 @@
 <ModalDownloadOptions bind:open={downloadOpen} tr={downloadTranscription} />
 <ModalRenameFile bind:open={renameOpen} tr={renameTranscription} />
 <ModalUploadJSON bind:open={uploadOpen} tr={uploadTranscription} />
+<ModalConfirmDelete />
 
 {#if !languagesError}
 	<ModalTranslationForm bind:open={translateOpen} tr={translateTranscription} {availableLanguages} {languagesLoading} />

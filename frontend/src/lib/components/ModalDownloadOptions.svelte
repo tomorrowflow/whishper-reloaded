@@ -1,5 +1,14 @@
 <script>
-	import { downloadSRT, downloadTXT, downloadJSON, downloadVTT, CLIENT_API_HOST } from '$lib/utils';
+	import {
+		downloadSRT,
+		downloadTXT,
+		downloadJSON,
+		downloadVTT,
+		downloadSpeakerTranscript,
+		buildSpeakerTranscript,
+		hasSpeakers,
+		CLIENT_API_HOST
+	} from '$lib/utils';
 	import toast from 'svelte-french-toast';
 	import { _ } from 'svelte-i18n';
 	import Modal from './ui/Modal.svelte';
@@ -9,32 +18,74 @@
 
 	export let open = false;
 	export let tr;
+	// A caller can suggest the format to start on — the reading view opens on the
+	// speaker transcript, since that is what it shows on screen. Only a suggestion:
+	// it is applied when the modal opens and the user can switch afterwards.
+	export let preferredFormat = null;
 
-	const FORMATS = ['srt', 'vtt', 'json', 'txt'];
+	const BASE_FORMATS = ['srt', 'vtt', 'json', 'txt'];
 
 	let subtitleFormat = 'srt';
 	let language = 'original';
 	let includeWords = false;
+	let includeSpeakers = true;
+	let dialogTimestamps = true;
 	let copied = false;
 
-	function downloadSubtitle() {
-		let segments = [];
-		let text = '';
-		let title = 'subtitles';
+	// Resolves the segments and text of the currently picked language. The original
+	// transcription and every translation share the same shape, and a translation
+	// inherits the speaker labels of the segments it was built from.
+	function resolveSelection(transcription, lang) {
+		if (!transcription) return { segments: [], text: '', title: 'subtitles' };
 
-		if (language == 'original') {
-			segments = tr.result.segments;
-			text = tr.result.text;
-			title = tr.fileName.split('_WHSHPR_')[1];
-		} else {
-			for (const translation of tr.translations) {
-				if (translation.targetLanguage == language) {
-					segments = translation.result.segments;
-					text = translation.result.text;
-					title = tr.fileName.split('_WHSHPR_')[1];
-					break;
-				}
+		const title = transcription.fileName.split('_WHSHPR_')[1];
+		const empty = { segments: [], text: '', title };
+
+		if (lang == 'original') {
+			return { ...empty, segments: transcription.result.segments ?? [], text: transcription.result.text ?? '' };
+		}
+
+		for (const translation of transcription.translations) {
+			if (translation.targetLanguage == lang) {
+				return { ...empty, segments: translation.result.segments ?? [], text: translation.result.text ?? '' };
 			}
+		}
+
+		return empty;
+	}
+
+	$: selection = resolveSelection(tr, language);
+	$: speakersAvailable = hasSpeakers(selection.segments);
+	// The speaker transcript only exists for diarized runs, so it is offered
+	// alongside the plain formats instead of replacing one of them.
+	$: formats = speakersAvailable ? [...BASE_FORMATS, 'dialog'] : BASE_FORMATS;
+	$: if (!speakersAvailable && subtitleFormat == 'dialog') subtitleFormat = 'srt';
+	$: speakerLabelsApply = speakersAvailable && (subtitleFormat == 'srt' || subtitleFormat == 'vtt');
+
+	let wasOpen = false;
+	$: if (open !== wasOpen) {
+		wasOpen = open;
+		if (open && preferredFormat && formats.includes(preferredFormat)) subtitleFormat = preferredFormat;
+	}
+
+	function speakerOptions() {
+		return {
+			timestamps: dialogTimestamps,
+			names: tr?.speakerNames,
+			unknownLabel: $_('modals.download.unknownSpeaker')
+		};
+	}
+
+	function downloadSubtitle() {
+		const { segments, text, title } = selection;
+
+		if (subtitleFormat == 'dialog') {
+			if (segments.length == 0) {
+				toast.error($_('modals.download.toasts.noData'));
+				return;
+			}
+			downloadSpeakerTranscript(segments, title, speakerOptions());
+			return;
 		}
 
 		if (segments.length == 0 || text == '') {
@@ -43,9 +94,9 @@
 		}
 
 		if (subtitleFormat == 'srt') {
-			downloadSRT(segments, title);
+			downloadSRT(segments, title, includeSpeakers, tr.speakerNames);
 		} else if (subtitleFormat == 'vtt') {
-			downloadVTT(segments, title);
+			downloadVTT(segments, title, includeSpeakers, tr.speakerNames);
 		} else if (subtitleFormat == 'json') {
 			downloadJSON(tr.result, title, includeWords);
 		} else if (subtitleFormat == 'txt') {
@@ -62,17 +113,18 @@
 	}
 
 	async function copyText() {
-		let text = '';
-		if (language == 'original') {
-			text = tr.result.text;
-		} else {
-			for (const translation of tr.translations) {
-				if (translation.targetLanguage == language) {
-					text = translation.result.text;
-					break;
-				}
-			}
+		// Copying follows the picked format, so the speaker transcript can be pasted
+		// straight into a document instead of having to go through a file.
+		let text =
+			subtitleFormat == 'dialog'
+				? buildSpeakerTranscript(selection.segments, speakerOptions())
+				: selection.text;
+
+		if (text == '') {
+			toast.error($_('modals.download.toasts.noData'));
+			return;
 		}
+
 		try {
 			await navigator.clipboard.writeText(text);
 			toast.success($_('modals.download.toasts.copied'));
@@ -109,7 +161,7 @@
 				<div>
 					<p class="text-muted-foreground mb-2 text-[0.72rem] uppercase tracking-wider">{$_('modals.download.fileFormat')}</p>
 					<div class="flex items-center gap-1.5 flex-wrap">
-						{#each FORMATS as f}
+						{#each formats as f}
 							<button
 								on:click={() => (subtitleFormat = f)}
 								class="px-3 py-1.5 rounded-lg border transition-all text-[0.78rem] font-medium uppercase {subtitleFormat ===
@@ -154,6 +206,23 @@
 					<label class="flex items-center gap-2 cursor-pointer">
 						<Checkbox bind:checked={includeWords} />
 						<span class="text-muted-foreground text-[0.78rem]">{$_('modals.download.includeWords')}</span>
+					</label>
+				{/if}
+
+				{#if subtitleFormat === 'dialog'}
+					<p class="text-muted-foreground text-[0.72rem] leading-relaxed">
+						{$_('modals.download.dialogHint')}
+					</p>
+					<label class="flex items-center gap-2 cursor-pointer">
+						<Checkbox bind:checked={dialogTimestamps} />
+						<span class="text-muted-foreground text-[0.78rem]">{$_('modals.download.includeTimestamps')}</span>
+					</label>
+				{/if}
+
+				{#if speakerLabelsApply}
+					<label class="flex items-center gap-2 cursor-pointer">
+						<Checkbox bind:checked={includeSpeakers} />
+						<span class="text-muted-foreground text-[0.78rem]">{$_('modals.download.includeSpeakers')}</span>
 					</label>
 				{/if}
 			</div>

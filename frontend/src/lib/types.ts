@@ -4,8 +4,10 @@ export type Transcription = {
     segments: Segment[];
     id: string;
     translations: Translation[];
+    diarize?: boolean;
     progress?: number;
     downloadingModel?: boolean;
+    diarizing?: boolean;
     modelSize?: string;
     vad_filter?: boolean;
     vad_threshold?: number;
@@ -20,6 +22,7 @@ export type Segment = {
     score: number;
     uuid: string;
     words?: WordData[];
+    speaker?: string;
 };
 
 type WordData = {

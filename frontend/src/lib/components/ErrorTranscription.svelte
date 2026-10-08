@@ -1,5 +1,5 @@
 <script>
-	import { deleteTranscription } from '$lib/utils.js';
+	import { requestDelete } from '$lib/utils.js';
 	import { _ } from 'svelte-i18n';
 	import { Trash2 } from 'lucide-svelte';
 	import TranscriptionRow from './TranscriptionRow.svelte';
@@ -14,7 +14,7 @@
 	</p>
 
 	<svelte:fragment slot="actions">
-		<Button variant="danger" size="sm" on:click={() => deleteTranscription(tr.id)}>
+		<Button variant="danger" size="sm" on:click={() => requestDelete(tr)}>
 			<Trash2 size={14} />
 			{$_('transcription.actions.delete')}
 		</Button>

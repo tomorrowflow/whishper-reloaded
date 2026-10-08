@@ -6,8 +6,24 @@
 	export let language;
 	export let segmentsToShow;
 	export let setSegmentsToShow;
+	// When set, navigate this list instead of deriving segments from the transcription.
+	// The reading view passes its merged speaker turns so the picker steps through
+	// paragraphs of the conversation rather than subtitle cues.
+	export let items = null;
+	export let rowSelector = '[data-segment-row]';
+	// Wording is caller-supplied because "segment" is the wrong noun in the reader.
+	export let labels = null;
+	// The reader has no editor settings to honour, but always wants the seek.
+	export let alwaysSeek = false;
 
 	let segmentIndex = '';
+
+	$: texts =
+		labels ?? {
+			placeholder: $_('editor.goTo.placeholder', { values: { max: getCurrentSegments().length } }),
+			go: $_('editor.goTo.goToSegment'),
+			seek: $_('editor.goTo.goAndSeek')
+		};
 
 	function navigateToSegment() {
 		const index = parseInt(segmentIndex);
@@ -24,7 +40,7 @@
 	}
 
 	function scrollToSegmentRow(index) {
-		let allRows = document.querySelectorAll('[data-segment-row]');
+		let allRows = document.querySelectorAll(rowSelector);
 		const targetSegmentRow = allRows[index - 1]; // Convert to 0-based index
 
 		if (targetSegmentRow) {
@@ -35,7 +51,7 @@
 			}, 2000);
 		} else {
 			setTimeout(() => {
-				const retryRows = document.querySelectorAll('[data-segment-row]');
+				const retryRows = document.querySelectorAll(rowSelector);
 				const retryTargetRow = retryRows[index - 1];
 				if (retryTargetRow) {
 					retryTargetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -49,6 +65,7 @@
 	}
 
 	function getCurrentSegments() {
+		if (items) return items;
 		if (language === 'original') {
 			return $currentTranscription.result.segments;
 		} else {
@@ -66,14 +83,14 @@
 		type="number"
 		min="0"
 		max={getCurrentSegments().length}
-		placeholder={$_('editor.goTo.placeholder', { values: { max: getCurrentSegments().length } })}
+		placeholder={texts.placeholder}
 		bind:value={segmentIndex}
 		on:keydown={(e) => e.key === 'Enter' && navigateToSegment()}
 		class="w-24 px-2 py-1.5 rounded-md bg-muted border border-border text-foreground text-[0.78rem] focus:outline-none focus:ring-2 focus:ring-primary/40"
 	/>
 	<IconButton
 		variant="primary"
-		title={$_('editor.goTo.goToSegment')}
+		title={texts.go}
 		on:click={navigateToSegment}
 		disabled={!segmentIndex || parseInt(segmentIndex) < 0 || parseInt(segmentIndex) > getCurrentSegments().length}
 	>
@@ -81,11 +98,12 @@
 	</IconButton>
 	<IconButton
 		variant="primary"
-		title={$_('editor.goTo.goAndSeek')}
+		title={texts.seek}
 		on:click={() => {
 			navigateToSegment();
-			if ($editorSettings.seekOnClick && segmentIndex) {
-				$currentVideoPlayerTime = getCurrentSegments()[parseInt(segmentIndex)]?.start;
+			// The input is 1-based, like the row the arrow button scrolls to.
+			if ((alwaysSeek || $editorSettings.seekOnClick) && segmentIndex) {
+				$currentVideoPlayerTime = getCurrentSegments()[parseInt(segmentIndex) - 1]?.start;
 			}
 		}}
 		disabled={!segmentIndex || parseInt(segmentIndex) < 1 || parseInt(segmentIndex) > getCurrentSegments().length}

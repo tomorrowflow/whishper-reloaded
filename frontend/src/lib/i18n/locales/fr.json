@@ -82,6 +82,7 @@
 		"actions": {
 			"edit": "Modifier",
 			"download": "Télécharger",
+			"read": "Lire",
 			"rename": "Renommer",
 			"uploadJson": "Importer JSON",
 			"translate": "Traduire",
@@ -165,6 +166,10 @@
 			"fileFormat": "Format du fichier",
 			"textLanguage": "Langue du texte",
 			"includeWords": "Inclure les horodatages par mot",
+			"dialogHint": "Transcription en texte brut regroupée par tour de parole, par ex. « Speaker 1 : Bonjour ».",
+			"includeTimestamps": "Inclure les horodatages",
+			"includeSpeakers": "Indiquer les locuteurs dans les sous-titres",
+			"unknownSpeaker": "Locuteur inconnu",
 			"tooltipFile": "Télécharger le fichier {format} en {language}.",
 			"tooltipCopy": "Copier le texte brut dans la langue « {language} ».",
 			"tooltipMedia": "Télécharger le média source",
@@ -174,6 +179,26 @@
 			"toasts": {
 				"noData": "Aucune donnée disponible au téléchargement",
 				"copied": "Texte copié dans le presse-papiers"
+			}
+		},
+		"delete": {
+			"title": "Supprimer la transcription ?",
+			"message": "La transcription et son fichier audio seront supprimés définitivement. Cette action est irréversible.",
+			"toasts": {
+				"success": "Transcription supprimée.",
+				"error": "Impossible de supprimer la transcription. Veuillez réessayer."
+			}
+		},
+		"speakers": {
+			"title": "Intervenants",
+			"hint": "Donnez un nom à chaque voix ; il remplace « Speaker N » dans toute la transcription et dans les téléchargements. Si la diarisation a séparé une personne en deux voix (par exemple après un changement de micro), donnez-leur le même nom pour les fusionner.",
+			"stats": "{duration} · {count, plural, one {# segment} other {# segments}}",
+			"listen": "Écouter cette voix",
+			"merged": "{from} voix → {to} intervenants",
+			"save": "Enregistrer les noms",
+			"toasts": {
+				"success": "Noms des intervenants enregistrés.",
+				"error": "Impossible d'enregistrer les noms. Veuillez réessayer."
 			}
 		}
 	},
@@ -223,6 +248,37 @@
 			"autosaveDisabled": "L'enregistrement automatique est désactivé.",
 			"autosaveEnabled": "Enregistrement automatique activé."
 		}
+	},
+	"reader": {
+		"back": "Retour à la liste",
+		"openEditor": "Ouvrir dans l'éditeur",
+		"download": "Télécharger la transcription",
+		"waiting": "En attente de la fin de la transcription...",
+		"empty": "Cette transcription n'a pas encore de texte.",
+		"end": "Fin de la conversation",
+		"loadingMore": "Chargement...",
+		"paragraphs": "{count, plural, one {# paragraphe} other {# paragraphes}}",
+		"speakers": "{count, plural, one {# locuteur} other {# locuteurs}}",
+		"seekHere": "Lire à partir d’ici",
+		"play": "Lecture",
+		"pause": "Pause",
+		"seek": "Se déplacer",
+		"locate": "Aller au paragraphe en cours de lecture",
+		"mediaError": "Impossible de charger l'audio — {error}",
+		"search": {
+			"placeholder": "Rechercher dans la conversation",
+			"matches": "{current} sur {total}",
+			"noMatches": "Aucun résultat",
+			"prev": "Résultat précédent",
+			"next": "Résultat suivant"
+		},
+		"goTo": {
+			"placeholder": "1-{max}",
+			"goToParagraph": "Aller au paragraphe",
+			"goAndSeek": "Aller au paragraphe et lire à partir de là"
+		},
+		"renameSpeakers": "Nommer les intervenants",
+		"renameSpeaker": "Renommer {name}"
 	},
 	"layout": {
 		"serviceErrors": {

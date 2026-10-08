@@ -1,6 +1,6 @@
 <script>
 	export let tr;
-	import { deleteTranscription } from '$lib/utils.js';
+	import { requestDelete } from '$lib/utils.js';
 	import { _ } from 'svelte-i18n';
 	import { Trash2 } from 'lucide-svelte';
 	import TranscriptionRow from './TranscriptionRow.svelte';
@@ -19,7 +19,7 @@
 		<IconButton
 			variant="danger"
 			title={$_('transcription.actions.delete')}
-			on:click={() => deleteTranscription(tr.id)}
+			on:click={() => requestDelete(tr)}
 		>
 			<Trash2 size={14} />
 		</IconButton>

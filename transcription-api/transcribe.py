@@ -25,12 +25,16 @@ async def transcribe_from_filename(
     vad_threshold: Optional[float] = None,
     vad_min_speech_duration_ms: Optional[int] = None,
     vad_min_silence_duration_ms: Optional[int] = None,
+    diarize: bool = False,
+    hf_token: str = None,
+    min_speakers: Optional[int] = None,
+    max_speakers: Optional[int] = None,
 ) -> Transcription:
     filepath = os.path.join(os.environ["UPLOAD_DIR"], filename)
     if not os.path.exists(filepath):
         raise RuntimeError(f"file not found in {filepath}")
     audio = convert_audio(filepath)
-    return await transcribe_audio(audio, model_size, language, device, beam_size, initial_prompt, hotwords, vad_filter, vad_threshold, vad_min_speech_duration_ms, vad_min_silence_duration_ms)
+    return await transcribe_audio(audio, model_size, language, device, beam_size, initial_prompt, hotwords, vad_filter, vad_threshold, vad_min_speech_duration_ms, vad_min_silence_duration_ms, diarize, hf_token, min_speakers, max_speakers)
 
 async def transcribe_file(
     file: io.BytesIO,
@@ -44,6 +48,10 @@ async def transcribe_file(
     vad_threshold: Optional[float] = None,
     vad_min_speech_duration_ms: Optional[int] = None,
     vad_min_silence_duration_ms: Optional[int] = None,
+    diarize: bool = False,
+    hf_token: str = None,
+    min_speakers: Optional[int] = None,
+    max_speakers: Optional[int] = None,
 ) -> Transcription:
     contents = await file.read()  # async read
     if len(contents) < 150 * 1024 * 1024:  # file is smaller than 150MB
@@ -58,7 +66,7 @@ async def transcribe_file(
         # Corrected to use the function in this file
         audio = convert_audio(file.filename)
         os.remove(file.filename)
-    return await transcribe_audio(audio, model_size, language, device, beam_size, initial_prompt, hotwords, vad_filter, vad_threshold, vad_min_speech_duration_ms, vad_min_silence_duration_ms)
+    return await transcribe_audio(audio, model_size, language, device, beam_size, initial_prompt, hotwords, vad_filter, vad_threshold, vad_min_speech_duration_ms, vad_min_silence_duration_ms, diarize, hf_token, min_speakers, max_speakers)
 
 async def transcribe_audio(
     audio: np.ndarray,
@@ -72,6 +80,10 @@ async def transcribe_audio(
     vad_threshold: Optional[float] = None,
     vad_min_speech_duration_ms: Optional[int] = None,
     vad_min_silence_duration_ms: Optional[int] = None,
+    diarize: bool = False,
+    hf_token: str = None,
+    min_speakers: Optional[int] = None,
+    max_speakers: Optional[int] = None,
 ) -> Transcription:
     if language == "auto":
         language = None
@@ -91,6 +103,10 @@ async def transcribe_audio(
         vad_threshold=vad_threshold,
         vad_min_speech_duration_ms=vad_min_speech_duration_ms,
         vad_min_silence_duration_ms=vad_min_silence_duration_ms,
+        diarize=diarize,
+        hf_token=hf_token,
+        min_speakers=min_speakers,
+        max_speakers=max_speakers,
     )
 
 
@@ -106,6 +122,10 @@ def transcribe_from_filename_stream(
     vad_threshold: Optional[float] = None,
     vad_min_speech_duration_ms: Optional[int] = None,
     vad_min_silence_duration_ms: Optional[int] = None,
+    diarize: bool = False,
+    hf_token: str = None,
+    min_speakers: Optional[int] = None,
+    max_speakers: Optional[int] = None,
 ):
     filepath = os.path.join(os.environ["UPLOAD_DIR"], filename)
     if not os.path.exists(filepath):
@@ -114,6 +134,7 @@ def transcribe_from_filename_stream(
     return transcribe_audio_stream(
         audio, model_size, language, device, beam_size, initial_prompt, hotwords,
         vad_filter, vad_threshold, vad_min_speech_duration_ms, vad_min_silence_duration_ms,
+        diarize, hf_token, min_speakers, max_speakers,
     )
 
 
@@ -130,6 +151,10 @@ def transcribe_file_stream(
     vad_threshold: Optional[float] = None,
     vad_min_speech_duration_ms: Optional[int] = None,
     vad_min_silence_duration_ms: Optional[int] = None,
+    diarize: bool = False,
+    hf_token: str = None,
+    min_speakers: Optional[int] = None,
+    max_speakers: Optional[int] = None,
 ):
     if len(contents) < 150 * 1024 * 1024:  # file is smaller than 150MB
         audio = convert_audio(io.BytesIO(contents))
@@ -143,6 +168,7 @@ def transcribe_file_stream(
     return transcribe_audio_stream(
         audio, model_size, language, device, beam_size, initial_prompt, hotwords,
         vad_filter, vad_threshold, vad_min_speech_duration_ms, vad_min_silence_duration_ms,
+        diarize, hf_token, min_speakers, max_speakers,
     )
 
 
@@ -158,6 +184,10 @@ def transcribe_audio_stream(
     vad_threshold: Optional[float] = None,
     vad_min_speech_duration_ms: Optional[int] = None,
     vad_min_silence_duration_ms: Optional[int] = None,
+    diarize: bool = False,
+    hf_token: str = None,
+    min_speakers: Optional[int] = None,
+    max_speakers: Optional[int] = None,
 ):
     """
     Run the transcription in a background thread and yield NDJSON lines.
@@ -202,7 +232,19 @@ def transcribe_audio_stream(
                 vad_min_speech_duration_ms=vad_min_speech_duration_ms,
                 vad_min_silence_duration_ms=vad_min_silence_duration_ms,
                 progress_callback=on_progress,
+                diarize=False,  # handled below so we can emit a progress event first
             )
+            if diarize and hf_token:
+                events.put({"type": "diarizing"})
+                from backends.diarize import assign_speakers
+                result["segments"] = assign_speakers(
+                    audio,
+                    result["segments"],
+                    hf_token=hf_token,
+                    min_speakers=min_speakers,
+                    max_speakers=max_speakers,
+                    device=model.device,
+                )
             events.put({"type": "result", "result": result})
         except Exception as e:  # noqa: BLE001
             events.put({"type": "error", "error": str(e)})

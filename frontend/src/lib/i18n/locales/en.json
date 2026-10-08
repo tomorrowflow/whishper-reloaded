@@ -82,6 +82,7 @@
 		"actions": {
 			"edit": "Edit",
 			"download": "Download",
+			"read": "Read",
 			"rename": "Rename",
 			"uploadJson": "Upload JSON",
 			"translate": "Translate",
@@ -165,6 +166,10 @@
 			"fileFormat": "File Format",
 			"textLanguage": "Text Language",
 			"includeWords": "Include word-level timestamps",
+			"dialogHint": "Plain text transcript grouped by speaker turn, e.g. \"Speaker 1: Hello there\".",
+			"includeTimestamps": "Include timestamps",
+			"includeSpeakers": "Label speakers in cues",
+			"unknownSpeaker": "Unknown speaker",
 			"tooltipFile": "Download {format} file in {language}.",
 			"tooltipCopy": "Copy raw text in '{language}' language.",
 			"tooltipMedia": "Download source media",
@@ -174,6 +179,26 @@
 			"toasts": {
 				"noData": "No data available for download",
 				"copied": "Text copied to clipboard"
+			}
+		},
+		"delete": {
+			"title": "Delete transcription?",
+			"message": "The transcription and its audio file will be permanently deleted. This cannot be undone.",
+			"toasts": {
+				"success": "Transcription deleted.",
+				"error": "Failed to delete the transcription. Please try again."
+			}
+		},
+		"speakers": {
+			"title": "Speakers",
+			"hint": "Give each voice a name; it replaces \"Speaker N\" throughout the transcript and in downloads. If diarization split one person into two voices (e.g. after a microphone change), give both the same name to merge them.",
+			"stats": "{duration} · {count, plural, one {# segment} other {# segments}}",
+			"listen": "Listen to this voice",
+			"merged": "{from} voices → {to} speakers",
+			"save": "Save names",
+			"toasts": {
+				"success": "Speaker names saved.",
+				"error": "Failed to save speaker names. Please try again."
 			}
 		}
 	},
@@ -223,6 +248,37 @@
 			"autosaveDisabled": "Autosave is disabled.",
 			"autosaveEnabled": "Autosave enabled."
 		}
+	},
+	"reader": {
+		"back": "Back to the list",
+		"openEditor": "Open in the editor",
+		"download": "Download transcript",
+		"waiting": "Waiting for the transcription to finish...",
+		"empty": "This transcription has no text yet.",
+		"end": "End of the conversation",
+		"loadingMore": "Loading more...",
+		"paragraphs": "{count, plural, one {# paragraph} other {# paragraphs}}",
+		"speakers": "{count, plural, one {# speaker} other {# speakers}}",
+		"seekHere": "Play from here",
+		"play": "Play",
+		"pause": "Pause",
+		"seek": "Seek",
+		"locate": "Go to the paragraph playing now",
+		"mediaError": "Could not load audio — {error}",
+		"search": {
+			"placeholder": "Search the conversation",
+			"matches": "{current} of {total}",
+			"noMatches": "No matches",
+			"prev": "Previous match",
+			"next": "Next match"
+		},
+		"goTo": {
+			"placeholder": "1-{max}",
+			"goToParagraph": "Go to paragraph",
+			"goAndSeek": "Go to paragraph and play from there"
+		},
+		"renameSpeakers": "Name the speakers",
+		"renameSpeaker": "Rename {name}"
 	},
 	"layout": {
 		"serviceErrors": {

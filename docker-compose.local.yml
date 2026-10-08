@@ -1,0 +1,120 @@
+# Whishper - local GPU deployment
+# Named network; only user-facing ports are bound to the host.
+# Usage: docker compose -f docker-compose.local.yml up -d
+
+networks:
+  whishper:
+    name: whishper
+    driver: bridge
+
+services:
+  whishper-mongo:
+    image: mongo:8.2
+    container_name: whishper-mongo
+    restart: unless-stopped
+    env_file: .backend.env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DB_USER:-whishper}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_PASS:-whishper}
+      # MongoDB >= 8.0 bundles a TCMalloc that misuses the kernel rseq ABI and
+      # refuses to start on Linux 6.19 - 7.0.13 (https://jira.mongodb.org/browse/SERVER-121912).
+      # The image ships GLIBC_TUNABLES=glibc.pthread.rseq=0; re-enabling glibc rseq makes
+      # TCMalloc fall back to per-thread caches, which avoids the bug and the startup check.
+      GLIBC_TUNABLES: glibc.pthread.rseq=1
+    volumes:
+      - ./whishper_data/db_data/db:/data/db
+    networks:
+      - whishper
+
+  translate:
+    image: libretranslate/libretranslate:latest-cuda
+    container_name: whishper-libretranslate
+    restart: unless-stopped
+    env_file: .backend.env
+    user: root
+    tty: true
+    environment:
+      LT_DISABLE_WEB_UI: "true"
+      LT_UPDATE_MODELS: "true"
+      LT_LOAD_ONLY: ${LT_LOAD_ONLY:-en,es,fr}
+    volumes:
+      - ./whishper_data/libretranslate/data:/home/libretranslate/.local/share
+      - ./whishper_data/libretranslate/cache:/home/libretranslate/.local/cache
+    ports:
+      - "5001:5000"
+    networks:
+      - whishper
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  whishper-api:
+    build:
+      context: ./transcription-api
+      dockerfile: Dockerfile.gpu
+    image: whishper-api-local:latest
+    container_name: whishper-api
+    restart: unless-stopped
+    env_file: .backend.env
+    environment:
+      UPLOAD_DIR: /uploads
+      WHISPER_MODELS_DIR: /app/models
+      WHISPER_MODELS: ${WHISPER_MODELS:-tiny,small}
+    volumes:
+      - ./whishper_data/uploads:/uploads
+      - ./whishper_data/models:/app/models
+    networks:
+      - whishper
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  whishper-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: whishper-backend-local:latest
+    container_name: whishper-backend
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    env_file: .backend.env
+    environment:
+      UPLOAD_DIR: /uploads
+      ASR_ENDPOINT: whishper-api:8000
+      TRANSLATION_ENDPOINT: translate:5000
+      DB_ENDPOINT: whishper-mongo:27017
+    volumes:
+      - ./whishper_data/uploads:/uploads
+      - ./whishper_data/logs:/var/log/whishper
+    networks:
+      - whishper
+    depends_on:
+      - whishper-mongo
+      - translate
+      - whishper-api
+
+  whishper-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: whishper-frontend-local:latest
+    container_name: whishper-frontend
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    env_file: .frontend.env
+    volumes:
+      - ./whishper_data/frontend/logs:/var/log/whishper
+    networks:
+      - whishper
+    depends_on:
+      - whishper-backend

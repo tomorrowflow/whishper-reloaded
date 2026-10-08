@@ -2,10 +2,10 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { deleteTranscription, getFullTranscription } from '$lib/utils.js';
+	import { requestDelete, getFullTranscription } from '$lib/utils.js';
 	import toast from 'svelte-french-toast';
 	import { _ } from 'svelte-i18n';
-	import { Pencil, Download, Upload, Languages, Trash2 } from 'lucide-svelte';
+	import { BookOpen, Pencil, Download, Upload, Languages, Trash2 } from 'lucide-svelte';
 	import TranscriptionRow from './TranscriptionRow.svelte';
 	import IconButton from './ui/IconButton.svelte';
 	import Badge from './ui/Badge.svelte';
@@ -44,10 +44,17 @@
 
 	const onDelete = (e) => {
 		e.stopPropagation();
-		deleteTranscription(tr.id);
+		requestDelete(tr);
 	};
 
 	const openEditor = () => goto(`/editor/${tr.id}`);
+
+	// The reading view fetches the transcription through its own route loader, so it
+	// needs no pre-flight fetch the way the modal actions do.
+	const openReader = (e) => {
+		e.stopPropagation();
+		goto(`/read/${tr.id}`);
+	};
 
 	$: displayName = tr.fileName.split('_WHSHPR_')[1];
 	$: duration = $_('transcription.meta.duration', {
@@ -84,6 +91,9 @@
 				<Badge class="border-primary/20 bg-primary/10 text-primary">VAD</Badge>
 			</span>
 		{/if}
+		{#if tr.diarize}
+			<Badge class="border-violet-500/30 bg-violet-500/10 text-violet-400">Diarize</Badge>
+		{/if}
 	</div>
 	<div class="flex items-center gap-3 text-muted-foreground text-[0.75rem] font-mono flex-wrap">
 		<span>{duration}</span>
@@ -101,6 +111,9 @@
 
 	<svelte:fragment slot="actions">
 		<div class="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+			<IconButton title={$_('transcription.actions.read')} on:click={openReader}>
+				<BookOpen size={13} />
+			</IconButton>
 			<IconButton title={$_('transcription.actions.rename')} on:click={onAction('rename')} disabled={!!loadingAction}>
 				{#if loadingAction === 'rename'}<Spinner size={13} />{:else}<Pencil size={13} />{/if}
 			</IconButton>

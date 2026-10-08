@@ -106,6 +106,15 @@ func SendTranscriptionRequest(t *models.Transcription, body *bytes.Buffer, write
 			params.Add("vad_min_silence_duration_ms", fmt.Sprintf("%d", *t.VadMinSilenceDurationMS))
 		}
 	}
+	if t.Diarize {
+		params.Add("diarize", "true")
+		if t.MinSpeakers != nil {
+			params.Add("min_speakers", fmt.Sprintf("%d", *t.MinSpeakers))
+		}
+		if t.MaxSpeakers != nil {
+			params.Add("max_speakers", fmt.Sprintf("%d", *t.MaxSpeakers))
+		}
+	}
 
 	// Attach parameters to URL
 	fullUrl := fmt.Sprintf("%s?%s", baseUrl, params.Encode())
@@ -166,7 +175,7 @@ func SendTranscriptionRequest(t *models.Transcription, body *bytes.Buffer, write
 // transcription service needs to download the model first, it invokes
 // onModelDownload with the model name. It returns the final WhisperResult once
 // the stream is complete.
-func SendTranscriptionRequestStream(t *models.Transcription, body *bytes.Buffer, writer *multipart.Writer, onProgress func(progress float64), onModelDownload func(model string)) (*models.WhisperResult, error) {
+func SendTranscriptionRequestStream(t *models.Transcription, body *bytes.Buffer, writer *multipart.Writer, onProgress func(progress float64), onModelDownload func(model string), onDiarizing func()) (*models.WhisperResult, error) {
 	baseUrl := fmt.Sprintf("http://%v/transcribe-stream/", os.Getenv("ASR_ENDPOINT"))
 
 	params := url.Values{}
@@ -194,6 +203,15 @@ func SendTranscriptionRequestStream(t *models.Transcription, body *bytes.Buffer,
 		}
 		if t.VadMinSilenceDurationMS != nil {
 			params.Add("vad_min_silence_duration_ms", fmt.Sprintf("%d", *t.VadMinSilenceDurationMS))
+		}
+	}
+	if t.Diarize {
+		params.Add("diarize", "true")
+		if t.MinSpeakers != nil {
+			params.Add("min_speakers", fmt.Sprintf("%d", *t.MinSpeakers))
+		}
+		if t.MaxSpeakers != nil {
+			params.Add("max_speakers", fmt.Sprintf("%d", *t.MaxSpeakers))
 		}
 	}
 
@@ -233,6 +251,7 @@ func SendTranscriptionRequestStream(t *models.Transcription, body *bytes.Buffer,
 		Model    string                `json:"model"`
 		Result   *models.WhisperResult `json:"result"`
 		Error    string                `json:"error"`
+		// "diarizing" type has no extra fields
 	}
 
 	var finalResult *models.WhisperResult
@@ -257,6 +276,10 @@ func SendTranscriptionRequestStream(t *models.Transcription, body *bytes.Buffer,
 		case "progress":
 			if onProgress != nil {
 				onProgress(ev.Progress)
+			}
+		case "diarizing":
+			if onDiarizing != nil {
+				onDiarizing()
 			}
 		case "result":
 			finalResult = ev.Result

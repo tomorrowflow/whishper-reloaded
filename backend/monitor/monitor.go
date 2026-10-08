@@ -87,6 +87,7 @@ func transcribe(s *api.Server, t *models.Transcription) error {
 		lastBroadcast = progress
 		t.Progress = progress
 		t.DownloadingModel = false
+		t.Diarizing = false
 		if _, uerr := s.Db.UpdateTranscription(t); uerr != nil {
 			log.Error().Err(uerr).Msg("Error updating transcription progress")
 			return
@@ -102,6 +103,12 @@ func transcribe(s *api.Server, t *models.Transcription) error {
 			return
 		}
 		s.BroadcastTranscription(t)
+	}, func() {
+		// Transcription is done; speaker diarization is now running.
+		t.Diarizing = true
+		t.Progress = 1.0
+		t.DownloadingModel = false
+		s.BroadcastTranscription(t)
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("Error sending transcription request")
@@ -113,6 +120,7 @@ func transcribe(s *api.Server, t *models.Transcription) error {
 	t.Status = models.TranscriptionStatusDone
 	t.Progress = 1.0
 	t.DownloadingModel = false
+	t.Diarizing = false
 	_, err = s.Db.UpdateTranscription(t)
 	if err != nil {
 		log.Error().Err(err).Msg("Error updating transcription")
