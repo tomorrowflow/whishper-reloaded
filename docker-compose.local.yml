@@ -56,6 +56,9 @@ services:
     build:
       context: ./transcription-api
       dockerfile: Dockerfile.gpu
+      args:
+        # 4: pyannote.audio 4 with speaker-diarization-community-1 (see Dockerfile.gpu)
+        PYANNOTE: "4"
     image: whishper-api-local:latest
     container_name: whishper-api
     restart: unless-stopped
