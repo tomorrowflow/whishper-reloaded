@@ -19,17 +19,34 @@ RUN ln -s -f /usr/bin/python${PYTHON_VERSION} /usr/bin/python3 && \
     ln -s -f /usr/bin/python${PYTHON_VERSION} /usr/bin/python && \
     ln -s -f /usr/bin/pip3 /usr/bin/pip
 
+# Speaker diarization backend:
+#   3 - pyannote.audio 3.x with speaker-diarization-3.1 (torch 2.5, CUDA 12.1)
+#   4 - pyannote.audio 4.x with speaker-diarization-community-1 (torch 2.11, CUDA 12.8).
+#       Its model terms must be accepted on Hugging Face for the HF_TOKEN account.
+# Both keep torch on CUDA 12: faster-whisper uses the image's CUDA 12 cuDNN 9, and a
+# CUDA 13 torch would bring a second libcudnn.so.9 into the same process.
+ARG PYANNOTE=3
+
 COPY requirements.txt requirements.txt
-RUN pip3 install -r requirements.txt \
+# Ubuntu 22.04's pip 22.0 trips over its own resolver (AssertionError in
+# get_topological_weights) on these requirements, so upgrade it first.
+RUN python3 -m pip install --upgrade pip \
+    && pip3 install -r requirements.txt \
     && pip3 install python-multipart \
-    && pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 \
-    && pip3 install faster-whisper \
-    && pip3 install "pyannote.audio>=3.1,<4.0" \
-    && pip3 install --force-reinstall torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 \
-    # pyannote 3.x passes use_auth_token= to hf_hub_download(), which huggingface_hub
-    # 1.x removed. Neither package caps the version, so pin it back to the 0.x line
-    # (faster-whisper only needs >=0.21). Must stay last so nothing re-upgrades it.
-    && pip3 install "huggingface_hub<1.0"
+    && if [ "$PYANNOTE" = "4" ]; then \
+        # One resolver run, so pyannote cannot pull a torch built for another CUDA.
+        pip3 install --extra-index-url https://download.pytorch.org/whl/cu128 \
+            "torch==2.11.0+cu128" "torchaudio==2.11.0+cu128" "pyannote.audio>=4,<5"; \
+    else \
+        pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 \
+        && pip3 install faster-whisper \
+        && pip3 install "pyannote.audio>=3.1,<4.0" \
+        && pip3 install --force-reinstall torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 \
+        # pyannote 3.x passes use_auth_token= to hf_hub_download(), which huggingface_hub
+        # 1.x removed. Neither package caps the version, so pin it back to the 0.x line
+        # (faster-whisper only needs >=0.21). Must stay last so nothing re-upgrades it.
+        && pip3 install "huggingface_hub<1.0"; \
+    fi
 
 WORKDIR /app
 

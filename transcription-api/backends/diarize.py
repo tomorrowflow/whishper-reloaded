@@ -1,3 +1,4 @@
+import os
 import uuid
 import numpy as np
 from typing import Optional
@@ -10,6 +11,41 @@ try:
     import torchvision  # noqa: F401
 except ImportError:
     pass
+
+
+def _default_model() -> str:
+    """The best diarization model the installed pyannote.audio can run."""
+    import pyannote.audio
+
+    major = int(pyannote.audio.__version__.split(".")[0])
+    if major >= 4:
+        return "pyannote/speaker-diarization-community-1"
+    return "pyannote/speaker-diarization-3.1"
+
+
+def _load_pipeline(hf_token: str):
+    from pyannote.audio import Pipeline
+
+    model = os.environ.get("DIARIZATION_MODEL") or _default_model()
+    print(f"Diarization model: {model}")
+    try:
+        # pyannote.audio 4 renamed the argument after huggingface_hub did.
+        return Pipeline.from_pretrained(model, token=hf_token)
+    except TypeError:
+        return Pipeline.from_pretrained(model, use_auth_token=hf_token)
+
+
+def _resolve_annotation(diarization):
+    """The speaker turns as an Annotation, whatever the pyannote version returns."""
+    # pyannote 4 also offers an exclusive diarization (at most one speaker at a
+    # time), meant for aligning with transcripts: overlapping speech is given to a
+    # single speaker instead of producing overlapping turns.
+    for attr in ("exclusive_speaker_diarization", "speaker_diarization", "diarization", "annotation"):
+        if getattr(diarization, attr, None) is not None:
+            return getattr(diarization, attr)
+    if hasattr(diarization, "itertracks"):  # pyannote 3.x returns the Annotation itself
+        return diarization
+    return diarization[0]
 
 
 def assign_speakers(
@@ -33,10 +69,7 @@ def assign_speakers(
         return segments
 
     try:
-        pipeline = Pipeline.from_pretrained(
-            "pyannote/speaker-diarization-3.1",
-            use_auth_token=hf_token,
-        )
+        pipeline = _load_pipeline(hf_token)
         target_device = torch.device("cuda" if device == "cuda" else "cpu")
         pipeline.to(target_device)
 
@@ -53,16 +86,7 @@ def assign_speakers(
             **kwargs,
         )
 
-        # Resolve to an Annotation regardless of pyannote version.
-        # pyannote 3.x returns Annotation directly; some builds wrap it.
-        if hasattr(diarization, "itertracks"):
-            annotation = diarization
-        elif hasattr(diarization, "diarization"):
-            annotation = diarization.diarization
-        elif hasattr(diarization, "annotation"):
-            annotation = diarization.annotation
-        else:
-            annotation = diarization[0]
+        annotation = _resolve_annotation(diarization)
         turns = [
             (turn.start, turn.end, speaker)
             for turn, _, speaker in annotation.itertracks(yield_label=True)
