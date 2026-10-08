@@ -30,7 +30,7 @@
 		'ja', 'nl', 'pl', 'pt', 'ru', 'sk', 'sl', 'sv', 'tk', 'tr', 'zh'
 	];
 	let models = [
-		'tiny', 'tiny.en', 'base', 'base.en', 'small', 'small.en', 'medium', 'medium.en', 'large-v2', 'large-v3'
+		'tiny', 'tiny.en', 'base', 'base.en', 'small', 'small.en', 'medium', 'medium.en', 'large-v2', 'large-v3', 'large-v3-turbo'
 	];
 	languages.sort((a, b) => {
 		if (a == 'auto') return -1;
@@ -43,14 +43,18 @@
 	let initialPrompt = '';
 	let hotwords = '';
 
-	// VAD settings
-	let enableVad = false;
-	let vadThreshold = '';
+	// VAD settings. On by default: large-v3 invents text in quiet stretches and
+	// after a recording ends, which VAD removes. The threshold is lowered from
+	// faster-whisper's 0.5, which treated quiet meeting participants as silence
+	// and dropped whole sentences; 0.2 kept all of their speech.
+	let enableVad = true;
+	let vadThreshold = '0.2';
 	let vadMinSpeech = '';
 	let vadMinSilence = '';
 
-	// Diarization settings
-	let enableDiarize = false;
+	// Diarization settings. On by default: most recordings are meetings, where
+	// knowing who said what is the point (needs HF_TOKEN on the transcription API).
+	let enableDiarize = true;
 	let minSpeakers = '';
 	let maxSpeakers = '';
 
