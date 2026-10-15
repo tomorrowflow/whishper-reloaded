@@ -81,7 +81,18 @@
 			return;
 		}
 		listened = true;
+		endReached = false;
 		onListen(row.segment.start);
+	}
+
+	// Playback started here stops where the shown sentences end instead of running
+	// on into the rest of the meeting. The flag keeps the pause from firing twice
+	// before `paused` catches up, which would toggle playback back on.
+	let endReached = false;
+	$: lastEnd = rows.at(-1)?.segment.end;
+	$: if (listened && !paused && !endReached && lastEnd != null && $currentVideoPlayerTime >= lastEnd) {
+		endReached = true;
+		onTogglePlay?.();
 	}
 
 	$: changes = rows
