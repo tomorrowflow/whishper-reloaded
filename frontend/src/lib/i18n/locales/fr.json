@@ -275,6 +275,17 @@
 		"speaker": "Intervenant : {name} — cliquez pour modifier",
 		"newSpeaker": "Nouveau ({name})"
 	},
+	"media": {
+		"connecting": "Connexion à l’audio…",
+		"buffering": "Mise en mémoire tampon…",
+		"retryIn": "Connexion perdue. Nouvelle tentative dans {seconds} s",
+		"reconnecting": "Connexion perdue. Reconnexion…",
+		"saving": "Enregistrement de l’audio pour une lecture hors ligne : {percent} %",
+		"savingSize": "{saved} sur {total} Mo",
+		"saveWaiting": "Téléchargement interrompu à {percent} %. Reprise dès le retour de la connexion",
+		"saved": "Audio enregistré. Lecture possible sans connexion",
+		"streaming": "Lecture en streaming. Ce fichier est trop volumineux pour être enregistré hors ligne"
+	},
 	"reader": {
 		"back": "Retour à la liste",
 		"openEditor": "Ouvrir dans l'éditeur",

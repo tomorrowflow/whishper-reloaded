@@ -5,6 +5,9 @@
 	import { saveSpeakerNames, mergeSpeakers, speakerName, speakerPalette, formatClockTime } from '$lib/utils';
 	import Modal from './ui/Modal.svelte';
 	import Button from './ui/Button.svelte';
+	import MediaStatus from './MediaStatus.svelte';
+	import Spinner from './ui/Spinner.svelte';
+	import { isWaitingForAudio } from '$lib/resilientMedia';
 	import { Combine, Pause, Play, Users, X } from 'lucide-svelte';
 
 	export let open = false;
@@ -13,6 +16,7 @@
 	export let onListen = null; // (time) => void, plays the recording from `time`
 	export let onTogglePlay = null; // () => void, pauses or resumes the recording
 	export let paused = true; // whether the recording is currently paused
+	export let mediaStatus = null; // see resilientMedia
 	export let onSaved = null; // (transcription) => void
 
 	// Names are always edited on the raw diarization labels, never on the merged
@@ -156,7 +160,8 @@
 				<X size={14} />
 			</button>
 		</div>
-		<p class="mb-5 text-[0.78rem] text-muted-foreground">{$_('modals.speakers.hint')}</p>
+		<p class="mb-3 text-[0.78rem] text-muted-foreground">{$_('modals.speakers.hint')}</p>
+		{#if onListen}<MediaStatus status={mediaStatus} class="mb-4" />{/if}
 
 		<form class="space-y-2.5" on:submit|preventDefault={save}>
 			{#each speakers as speaker (speaker.label)}
@@ -235,7 +240,7 @@
 										? 'bg-primary text-primary-foreground hover:bg-primary/90'
 										: 'bg-primary/15 text-primary hover:bg-primary/25'}"
 								>
-									{#if playing}<Pause size={11} />{:else}<Play size={11} />{/if}
+									{#if listening === speaker.label && isWaitingForAudio(mediaStatus)}<Spinner size={11} />{:else if playing}<Pause size={11} />{:else}<Play size={11} />{/if}
 								</button>
 							{/if}
 							<p class="line-clamp-2 text-[0.78rem] italic text-muted-foreground">

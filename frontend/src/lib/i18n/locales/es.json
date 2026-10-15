@@ -275,6 +275,17 @@
 		"speaker": "Hablante: {name} — haz clic para cambiarlo",
 		"newSpeaker": "Nuevo ({name})"
 	},
+	"media": {
+		"connecting": "Conectando con el audio…",
+		"buffering": "Cargando…",
+		"retryIn": "Conexión perdida. Reintentando en {seconds} s",
+		"reconnecting": "Conexión perdida. Reconectando…",
+		"saving": "Guardando el audio para reproducirlo sin conexión: {percent}%",
+		"savingSize": "{saved} de {total} MB",
+		"saveWaiting": "Descarga interrumpida al {percent}%. Se reanudará cuando vuelva la conexión",
+		"saved": "Audio guardado. Se reproduce sin conexión",
+		"streaming": "En streaming. Este archivo es demasiado grande para guardarlo sin conexión"
+	},
 	"reader": {
 		"back": "Volver a la lista",
 		"openEditor": "Abrir en el editor",

@@ -215,14 +215,14 @@ export const hasSpeakers = function (segments) {
 // The border/badge colours used to tell speakers apart, indexed by the number in
 // their label so a speaker keeps the same colour everywhere they appear.
 const SPEAKER_PALETTES = [
-    { box: 'border-l-4 border-l-blue-500/60',    badge: 'bg-blue-500/15 text-blue-400 border-blue-500/30',          text: 'text-blue-400' },
-    { box: 'border-l-4 border-l-emerald-500/60', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', text: 'text-emerald-400' },
-    { box: 'border-l-4 border-l-violet-500/60',  badge: 'bg-violet-500/15 text-violet-400 border-violet-500/30',    text: 'text-violet-400' },
-    { box: 'border-l-4 border-l-amber-500/60',   badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30',       text: 'text-amber-400' },
-    { box: 'border-l-4 border-l-rose-500/60',    badge: 'bg-rose-500/15 text-rose-400 border-rose-500/30',          text: 'text-rose-400' },
-    { box: 'border-l-4 border-l-cyan-500/60',    badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',          text: 'text-cyan-400' },
-    { box: 'border-l-4 border-l-orange-500/60',  badge: 'bg-orange-500/15 text-orange-400 border-orange-500/30',    text: 'text-orange-400' },
-    { box: 'border-l-4 border-l-pink-500/60',    badge: 'bg-pink-500/15 text-pink-400 border-pink-500/30',          text: 'text-pink-400' }
+    { box: 'border-l-4 border-l-blue-500/60',    badge: 'bg-blue-500/15 text-blue-400 border-blue-500/30',          text: 'text-blue-400', tint: 'bg-blue-500/[0.07]', select: 'border-blue-500/50 bg-blue-500/10 text-blue-500' },
+    { box: 'border-l-4 border-l-emerald-500/60', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', text: 'text-emerald-400', tint: 'bg-emerald-500/[0.07]', select: 'border-emerald-500/50 bg-emerald-500/10 text-emerald-500' },
+    { box: 'border-l-4 border-l-violet-500/60',  badge: 'bg-violet-500/15 text-violet-400 border-violet-500/30',    text: 'text-violet-400', tint: 'bg-violet-500/[0.07]', select: 'border-violet-500/50 bg-violet-500/10 text-violet-500' },
+    { box: 'border-l-4 border-l-amber-500/60',   badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30',       text: 'text-amber-400', tint: 'bg-amber-500/[0.07]', select: 'border-amber-500/50 bg-amber-500/10 text-amber-500' },
+    { box: 'border-l-4 border-l-rose-500/60',    badge: 'bg-rose-500/15 text-rose-400 border-rose-500/30',          text: 'text-rose-400', tint: 'bg-rose-500/[0.07]', select: 'border-rose-500/50 bg-rose-500/10 text-rose-500' },
+    { box: 'border-l-4 border-l-cyan-500/60',    badge: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',          text: 'text-cyan-400', tint: 'bg-cyan-500/[0.07]', select: 'border-cyan-500/50 bg-cyan-500/10 text-cyan-500' },
+    { box: 'border-l-4 border-l-orange-500/60',  badge: 'bg-orange-500/15 text-orange-400 border-orange-500/30',    text: 'text-orange-400', tint: 'bg-orange-500/[0.07]', select: 'border-orange-500/50 bg-orange-500/10 text-orange-500' },
+    { box: 'border-l-4 border-l-pink-500/60',    badge: 'bg-pink-500/15 text-pink-400 border-pink-500/30',          text: 'text-pink-400', tint: 'bg-pink-500/[0.07]', select: 'border-pink-500/50 bg-pink-500/10 text-pink-500' }
 ];
 
 // When the user gives several labels the same name (diarization split one person

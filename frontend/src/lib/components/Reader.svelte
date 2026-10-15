@@ -4,7 +4,8 @@
 	import { _ } from 'svelte-i18n';
 	import { currentTranscription, currentVideoPlayerTime } from '$lib/stores';
 	import { buildSpeakerTurns, CLIENT_API_HOST } from '$lib/utils';
-	import { resilientMedia } from '$lib/resilientMedia';
+	import { isWaitingForAudio, resilientMedia } from '$lib/resilientMedia';
+	import MediaStatus from './MediaStatus.svelte';
 	import ReaderTurn from './ReaderTurn.svelte';
 	import GoToSegment from './GoToSegment.svelte';
 	import ModalDownloadOptions from './ModalDownloadOptions.svelte';
@@ -137,6 +138,7 @@
 	let mediaError = '';
 	// True while the source is being swapped; the element's time reads 0 meanwhile.
 	let reloading = false;
+	let mediaStatus = null;
 
 	// Which turn the playhead currently sits in, highlighted once the user engaged.
 	$: playingTurn = engaged ? turnIndexAt($currentVideoPlayerTime) : -1;
@@ -248,6 +250,7 @@
 	onListen={listenAt}
 	onTogglePlay={togglePlay}
 	{paused}
+	{mediaStatus}
 	onSaved={(updated) => currentTranscription.set(updated)}
 />
 <ModalSegmentSpeakers
@@ -256,6 +259,9 @@
 	{segments}
 	indices={correctIndices}
 	onListen={listenAt}
+	onTogglePlay={togglePlay}
+	{paused}
+	{mediaStatus}
 	onSaved={(updated) => currentTranscription.set(updated)}
 />
 
@@ -439,6 +445,7 @@
 				on:pause={() => (paused = true)}
 				on:fatalerror={handleMediaError}
 				on:reloading={(e) => (reloading = e.detail)}
+				on:mediastatus={(e) => (mediaStatus = e.detail)}
 				class="hidden"
 			/>
 
@@ -453,7 +460,7 @@
 			>
 				{#if mediaError}
 					<AlertTriangle size={16} />
-				{:else if !canPlay || reloading}
+				{:else if !canPlay || reloading || (!paused && isWaitingForAudio(mediaStatus))}
 					<Spinner size={16} />
 				{:else if !paused}
 					<Pause size={16} />
@@ -481,6 +488,7 @@
 						<span>{fmt($currentVideoPlayerTime)}</span>
 						<span>{fmt(duration)}</span>
 					</div>
+					<MediaStatus status={mediaStatus} class="mt-1" />
 				{/if}
 			</div>
 

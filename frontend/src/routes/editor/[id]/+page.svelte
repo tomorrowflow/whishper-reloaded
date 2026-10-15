@@ -5,7 +5,8 @@
 	import Editor from '$lib/components/Editor.svelte';
 	import { currentVideoPlayerTime, currentTranscription, audioMode } from '$lib/stores';
 	import { CLIENT_API_HOST } from '$lib/utils';
-	import { resilientMedia } from '$lib/resilientMedia';
+	import { isWaitingForAudio, resilientMedia } from '$lib/resilientMedia';
+	import MediaStatus from '$lib/components/MediaStatus.svelte';
 	import { _ } from 'svelte-i18n';
 	import { writable } from 'svelte/store';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
@@ -24,6 +25,7 @@
 	let mediaError = '';
 	// True while the source is being swapped; the element's time reads 0 meanwhile.
 	let reloading = false;
+	let mediaStatus = null;
 
 	$: mediaSrc = $currentTranscription
 		? `${CLIENT_API_HOST}/api/video/${encodeURIComponent($currentTranscription.fileName)}`
@@ -191,6 +193,7 @@
 						on:pause={() => (paused = true)}
 						on:fatalerror={handleMediaError}
 						on:reloading={(e) => (reloading = e.detail)}
+						on:mediastatus={(e) => (mediaStatus = e.detail)}
 						class="hidden"
 					/>
 
@@ -204,7 +207,7 @@
 					>
 						{#if mediaError}
 							<AlertTriangle size={18} />
-						{:else if !canPlay || reloading}
+						{:else if !canPlay || reloading || (!paused && isWaitingForAudio(mediaStatus))}
 							<Spinner size={18} />
 						{:else if !paused}
 							<Pause size={18} />
@@ -240,6 +243,7 @@
 								<span>{fmt($currentVideoPlayerTime)}</span>
 								<span>{video ? fmt(video.duration) : '0:00'}</span>
 							</div>
+							<MediaStatus status={mediaStatus} class="mt-1" />
 						{/if}
 					</div>
 
@@ -278,10 +282,16 @@
 						on:pause={() => (paused = true)}
 						on:fatalerror={handleMediaError}
 						on:reloading={(e) => (reloading = e.detail)}
+						on:mediastatus={(e) => (mediaStatus = e.detail)}
 						class="absolute top-0 left-0 w-full h-full"
 					>
 						<track kind="captions" />
 					</video>
+					<MediaStatus
+						status={mediaStatus}
+						hideWhenSettled
+						class="pointer-events-none absolute left-2 right-2 top-2 rounded-lg bg-black/60 px-2.5 py-1.5 backdrop-blur-sm"
+					/>
 				</div>
 			</div>
 			<div class="col-span-2 overflow-auto bg-background">
