@@ -1,4 +1,5 @@
 from backends.fasterwhisper import FasterWhisperBackend
+from backends.model_lease import lease
 from backends.backend import Transcription
 from faster_whisper import decode_audio
 from models import DeviceType
@@ -87,27 +88,23 @@ async def transcribe_audio(
 ) -> Transcription:
     if language == "auto":
         language = None
-    # Load the model
-    model = FasterWhisperBackend(model_size=model_size, device=device)
-    model.get_model()
-    model.load()
-    # Transcribe the file
-    return model.transcribe(
-        audio,
-        silent=True,
-        language=language,
-        beam_size=beam_size,
-        initial_prompt=initial_prompt,
-        hotwords=hotwords,
-        vad_filter=vad_filter,
-        vad_threshold=vad_threshold,
-        vad_min_speech_duration_ms=vad_min_speech_duration_ms,
-        vad_min_silence_duration_ms=vad_min_silence_duration_ms,
-        diarize=diarize,
-        hf_token=hf_token,
-        min_speakers=min_speakers,
-        max_speakers=max_speakers,
-    )
+    with lease(model_size, device) as model:
+        return model.transcribe(
+            audio,
+            silent=True,
+            language=language,
+            beam_size=beam_size,
+            initial_prompt=initial_prompt,
+            hotwords=hotwords,
+            vad_filter=vad_filter,
+            vad_threshold=vad_threshold,
+            vad_min_speech_duration_ms=vad_min_speech_duration_ms,
+            vad_min_silence_duration_ms=vad_min_silence_duration_ms,
+            diarize=diarize,
+            hf_token=hf_token,
+            min_speakers=min_speakers,
+            max_speakers=max_speakers,
+        )
 
 
 def transcribe_from_filename_stream(
@@ -200,64 +197,60 @@ def transcribe_audio_stream(
     if language == "auto":
         language = None
 
-    model = FasterWhisperBackend(model_size=model_size, device=device)
-
     # If the model weights are not cached yet, let the consumer know that we
     # are about to download them (this can take a while for large models).
-    if not model.is_model_cached():
+    if not FasterWhisperBackend(model_size=model_size, device=device).is_model_cached():
         yield json.dumps({"type": "model_download", "model": model_size}) + "\n"
 
-    model.get_model()
-    model.load()
+    with lease(model_size, device) as model:
+        # Thread-safe queue used to forward progress events from the worker
+        # thread (where the blocking transcribe loop runs) to this generator.
+        events: "queue.Queue" = queue.Queue()
+        SENTINEL = object()
 
-    # Thread-safe queue used to forward progress events from the worker
-    # thread (where the blocking transcribe loop runs) to this generator.
-    events: "queue.Queue" = queue.Queue()
-    SENTINEL = object()
+        def on_progress(progress: float, _segment):
+            events.put({"type": "progress", "progress": round(progress, 4)})
 
-    def on_progress(progress: float, _segment):
-        events.put({"type": "progress", "progress": round(progress, 4)})
-
-    def worker():
-        try:
-            result = model.transcribe(
-                audio,
-                silent=True,
-                language=language,
-                beam_size=beam_size,
-                initial_prompt=initial_prompt,
-                hotwords=hotwords,
-                vad_filter=vad_filter,
-                vad_threshold=vad_threshold,
-                vad_min_speech_duration_ms=vad_min_speech_duration_ms,
-                vad_min_silence_duration_ms=vad_min_silence_duration_ms,
-                progress_callback=on_progress,
-                diarize=False,  # handled below so we can emit a progress event first
-            )
-            if diarize and hf_token:
-                events.put({"type": "diarizing"})
-                from backends.diarize import assign_speakers
-                result["segments"] = assign_speakers(
+        def worker():
+            try:
+                result = model.transcribe(
                     audio,
-                    result["segments"],
-                    hf_token=hf_token,
-                    min_speakers=min_speakers,
-                    max_speakers=max_speakers,
-                    device=model.device,
+                    silent=True,
+                    language=language,
+                    beam_size=beam_size,
+                    initial_prompt=initial_prompt,
+                    hotwords=hotwords,
+                    vad_filter=vad_filter,
+                    vad_threshold=vad_threshold,
+                    vad_min_speech_duration_ms=vad_min_speech_duration_ms,
+                    vad_min_silence_duration_ms=vad_min_silence_duration_ms,
+                    progress_callback=on_progress,
+                    diarize=False,  # handled below so we can emit a progress event first
                 )
-            events.put({"type": "result", "result": result})
-        except Exception as e:  # noqa: BLE001
-            events.put({"type": "error", "error": str(e)})
-        finally:
-            events.put(SENTINEL)
+                if diarize and hf_token:
+                    events.put({"type": "diarizing"})
+                    from backends.diarize import assign_speakers
+                    result["segments"] = assign_speakers(
+                        audio,
+                        result["segments"],
+                        hf_token=hf_token,
+                        min_speakers=min_speakers,
+                        max_speakers=max_speakers,
+                        device=model.device,
+                    )
+                events.put({"type": "result", "result": result})
+            except Exception as e:  # noqa: BLE001
+                events.put({"type": "error", "error": str(e)})
+            finally:
+                events.put(SENTINEL)
 
-    thread = threading.Thread(target=worker, daemon=True)
-    thread.start()
+        thread = threading.Thread(target=worker, daemon=True)
+        thread.start()
 
-    while True:
-        event = events.get()
-        if event is SENTINEL:
-            break
-        yield json.dumps(event) + "\n"
+        while True:
+            event = events.get()
+            if event is SENTINEL:
+                break
+            yield json.dumps(event) + "\n"
 
-    thread.join()
+        thread.join()
