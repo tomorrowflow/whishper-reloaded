@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/rs/zerolog/log"
 
 	"codeberg.org/pluja/whishper/database"
@@ -83,10 +84,20 @@ func (s *Server) BroadcastTranscription(t *models.Transcription) {
 }
 
 func (s *Server) SetupMiddleware() {
-	s.Router.Use(cors.New())
+	// The player downloads media in Range chunks from another origin and needs
+	// Content-Range to learn the file size; browsers hide it unless exposed.
+	s.Router.Use(cors.New(cors.Config{
+		ExposeHeaders: "Content-Range, Content-Length, Accept-Ranges",
+	}))
 }
 
 func (s *Server) RegisterRoutes() {
+	// One line per media request, so playback trouble on a bad connection can be
+	// traced: repeated `retry=N` queries are the player reconnecting.
+	s.Router.Use("/api/video", logger.New(logger.Config{
+		Format:     "${time} media ${ip} ${status} ${latency} range=${reqHeader:Range} ${queryParams} ${path}\n",
+		TimeFormat: "15:04:05",
+	}))
 	// Static routes. ByteRange is required for media seeking: without it the
 	// server answers a Range request with the whole file and a 200, which
 	// breaks scrubbing and makes Safari refuse to play the element at all.
