@@ -4,6 +4,7 @@
 	import { _ } from 'svelte-i18n';
 	import { currentTranscription, currentVideoPlayerTime } from '$lib/stores';
 	import { buildSpeakerTurns, CLIENT_API_HOST } from '$lib/utils';
+	import { resilientMedia } from '$lib/resilientMedia';
 	import ReaderTurn from './ReaderTurn.svelte';
 	import GoToSegment from './GoToSegment.svelte';
 	import ModalDownloadOptions from './ModalDownloadOptions.svelte';
@@ -134,6 +135,8 @@
 	let engaged = false;
 	let duration = 0;
 	let mediaError = '';
+	// True while the source is being swapped; the element's time reads 0 meanwhile.
+	let reloading = false;
 
 	// Which turn the playhead currently sits in, highlighted once the user engaged.
 	$: playingTurn = engaged ? turnIndexAt($currentVideoPlayerTime) : -1;
@@ -168,14 +171,15 @@
 		}
 		const played = media.play();
 		if (played && typeof played.catch === 'function') {
+			// A source that failed to load is retried by resilientMedia, which resumes
+			// playback once it is back; only its `fatalerror` is shown to the user.
 			played.catch((err) => {
-				mediaError = err?.message ?? String(err);
-				console.error('Audio playback failed:', err);
+				console.warn('Audio playback deferred:', err);
 			});
 		}
 	}
 
-	$: if (canPlay && media && Math.abs(media.currentTime - $currentVideoPlayerTime) > SEEK_TOLERANCE) {
+	$: if (canPlay && !reloading && media && Math.abs(media.currentTime - $currentVideoPlayerTime) > SEEK_TOLERANCE) {
 		media.currentTime = $currentVideoPlayerTime;
 	}
 
@@ -421,9 +425,8 @@
 			     wrong hint makes the browser skip the source. -->
 			<audio
 				bind:this={media}
-				src={mediaSrc}
-				preload="metadata"
-				on:timeupdate={(e) => ($currentVideoPlayerTime = e.target.currentTime)}
+				use:resilientMedia={mediaSrc}
+				on:timeupdate={(e) => !reloading && ($currentVideoPlayerTime = e.target.currentTime)}
 				on:canplay={() => (canPlay = true)}
 				on:loadedmetadata={(e) => {
 					canPlay = true;
@@ -434,7 +437,8 @@
 					engaged = true;
 				}}
 				on:pause={() => (paused = true)}
-				on:error={handleMediaError}
+				on:fatalerror={handleMediaError}
+				on:reloading={(e) => (reloading = e.detail)}
 				class="hidden"
 			/>
 
@@ -449,7 +453,7 @@
 			>
 				{#if mediaError}
 					<AlertTriangle size={16} />
-				{:else if !canPlay}
+				{:else if !canPlay || reloading}
 					<Spinner size={16} />
 				{:else if !paused}
 					<Pause size={16} />

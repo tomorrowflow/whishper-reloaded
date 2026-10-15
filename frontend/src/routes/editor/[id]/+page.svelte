@@ -5,6 +5,7 @@
 	import Editor from '$lib/components/Editor.svelte';
 	import { currentVideoPlayerTime, currentTranscription, audioMode } from '$lib/stores';
 	import { CLIENT_API_HOST } from '$lib/utils';
+	import { resilientMedia } from '$lib/resilientMedia';
 	import { _ } from 'svelte-i18n';
 	import { writable } from 'svelte/store';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
@@ -21,6 +22,8 @@
 	// Mirror it into local state via the play/pause events instead.
 	let paused = true;
 	let mediaError = '';
+	// True while the source is being swapped; the element's time reads 0 meanwhile.
+	let reloading = false;
 
 	$: mediaSrc = $currentTranscription
 		? `${CLIENT_API_HOST}/api/video/${encodeURIComponent($currentTranscription.fileName)}`
@@ -52,13 +55,14 @@
 		}
 		const played = video.play();
 		if (played && typeof played.catch === 'function') {
+			// A source that failed to load is retried by resilientMedia, which resumes
+			// playback once it is back; only its `fatalerror` is shown to the user.
 			played.catch((err) => {
-				mediaError = err?.message ?? String(err);
-				console.error('Audio playback failed:', err);
+				console.warn('Audio playback deferred:', err);
 			});
 		}
 	}
-	$: if (canPlay && video && Math.abs(video.currentTime - $currentVideoPlayerTime) > tolerance) {
+	$: if (canPlay && !reloading && video && Math.abs(video.currentTime - $currentVideoPlayerTime) > tolerance) {
 		// When testing in Chrome, it works, just see https://stackoverflow.com/a/67584611
 		video.currentTime = $currentVideoPlayerTime;
 	}
@@ -179,14 +183,14 @@
 					<audio
 						id="audio"
 						bind:this={video}
-						src={mediaSrc}
-						preload="metadata"
-						on:timeupdate={(e) => ($currentVideoPlayerTime = e.target.currentTime)}
+						use:resilientMedia={mediaSrc}
+						on:timeupdate={(e) => !reloading && ($currentVideoPlayerTime = e.target.currentTime)}
 						on:canplay={() => (canPlay = true)}
 						on:loadedmetadata={() => (canPlay = true)}
 						on:play={() => (paused = false)}
 						on:pause={() => (paused = true)}
-						on:error={handleMediaError}
+						on:fatalerror={handleMediaError}
+						on:reloading={(e) => (reloading = e.detail)}
 						class="hidden"
 					/>
 
@@ -200,7 +204,7 @@
 					>
 						{#if mediaError}
 							<AlertTriangle size={18} />
-						{:else if !canPlay}
+						{:else if !canPlay || reloading}
 							<Spinner size={18} />
 						{:else if !paused}
 							<Pause size={18} />
@@ -266,14 +270,14 @@
 						id="video"
 						controls
 						bind:this={video}
-						src={mediaSrc}
-						preload="metadata"
-						on:timeupdate={(e) => ($currentVideoPlayerTime = e.target.currentTime)}
+						use:resilientMedia={mediaSrc}
+						on:timeupdate={(e) => !reloading && ($currentVideoPlayerTime = e.target.currentTime)}
 						on:canplay={() => (canPlay = true)}
 						on:loadedmetadata={() => (canPlay = true)}
 						on:play={() => (paused = false)}
 						on:pause={() => (paused = true)}
-						on:error={handleMediaError}
+						on:fatalerror={handleMediaError}
+						on:reloading={(e) => (reloading = e.detail)}
 						class="absolute top-0 left-0 w-full h-full"
 					>
 						<track kind="captions" />
